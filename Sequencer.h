@@ -9,7 +9,8 @@
 #include "Arduino.h"
 //add your includes for the project Sequencer here
 #include "SPI.h"
-#include "Atmel_AT42-QT1245.h"
+//#include "Atmel_AT42-QT1245.h"
+#include "IS31FL3246_LED_driver.h"
 
 
 //end of add your includes here
@@ -28,11 +29,11 @@ byte data_read = false;
 // Multiple devices can be connected together in a single wire-OR logic connection with the host.
 // When the CHANGE pin goes active, the host can poll all devices to identify which one is reporting
 // a touch change.
-void nCHANGE_ISR()
-{
-  new_touch = true;
-  detachInterrupt(digitalPinToInterrupt(nCHANGE_pin));
-}
+//void nCHANGE_ISR()
+//{
+//  new_touch = true;
+//  detachInterrupt(digitalPinToInterrupt(nCHANGE_pin));
+//}
 
 //Do not add code below this line
 #endif /* _Sequencer_H_ */
