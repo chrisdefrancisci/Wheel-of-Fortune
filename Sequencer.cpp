@@ -7,6 +7,7 @@ using namespace IS31FL3246;
 
 // LED Driver
 const uint8_t led_driver_address = B0110000; // AD connected to GND
+//const uint8_t led_driver_address = B0110011; // AD connected to +5V
 const uint8_t sdb_pin = 9;
 const bool isRGB = true;
 const bool is8bit = true;
@@ -14,19 +15,19 @@ const uint8_t ledLen = 12;
 
 // Colors
 const rgb8_t RED_RGB = {255, 0, 0};
-const rgb8_t ORANGE_RGB = {255, 190, 0};
+const rgb8_t ORANGE_RGB = {255, 100, 0};
 const rgb8_t YELLOW_RGB = {255, 255, 0};
 const rgb8_t LIME_RGB = {100, 255, 0};
 
 const rgb8_t GREEN_RGB = {0, 255, 0};
-const rgb8_t SEA_RGB = {0, 255, 180};
+const rgb8_t SEA_RGB = {0, 255, 80};
 const rgb8_t CYAN_RGB = {0, 255, 255};
-const rgb8_t INDIGO_RGB = {0, 150, 255};
+const rgb8_t INDIGO_RGB = {0, 200, 255};
 
 const rgb8_t BLUE_RGB = {0, 0, 255};
 const rgb8_t PURPLE_RGB = {150, 0, 255};
 const rgb8_t VIOLET_RGB = {255, 0, 255};
-const rgb8_t MAGENTA_RGB = {255, 0, 100};
+const rgb8_t MAGENTA_RGB = {255, 0, 50};
 rgb8_t rgbConsts[] = {RED_RGB, ORANGE_RGB, YELLOW_RGB, LIME_RGB, GREEN_RGB,
 		SEA_RGB, CYAN_RGB, INDIGO_RGB, BLUE_RGB, PURPLE_RGB, VIOLET_RGB, MAGENTA_RGB};
 const uint8_t rgbLen = 12;
@@ -161,15 +162,15 @@ void loop()
 	unsigned long interval_millis = 200;
 	static int rgbIdx = 0;
 	if (this_millis - last_millis >= interval_millis) {
+		last_millis = millis();
+
 		for (int ledIdx = 0; ledIdx < ledLen; ledIdx++) {
 			int rgbCircIdx = ((rgbIdx + ledIdx) >= rgbLen ) ? rgbIdx + ledIdx - rgbLen : rgbIdx + ledIdx;
 			LedDriver.writeRgb(ledIdx, rgbConsts[rgbCircIdx]);
 		}
 		LedDriver.update();
-
-		last_millis = this_millis;
 		rgbIdx++;
-		if (rgbIdx > rgbLen) {
+		if (rgbIdx >= rgbLen) {
 			rgbIdx = 0;
 		}
 	}
