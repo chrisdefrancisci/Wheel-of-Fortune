@@ -122,22 +122,15 @@ public:
 
 	WireStatus::WireStatus begin();
 
-	// TODO: could simplify code by utilizing templates
-	void setRCurrent(uint8_t current);
-	void setGCurrent(uint8_t current);
-	void setBCurrent(uint8_t current);
-	void setRgbCurrent(rgb8_t currentRgb);
+	WireStatus::WireStatus setRCurrent(uint8_t current);
+	WireStatus::WireStatus setGCurrent(uint8_t current);
+	WireStatus::WireStatus setBCurrent(uint8_t current);
+	WireStatus::WireStatus setRgbCurrent(rgb8_t currentRgb);
 
-	void writeRgb(uint8_t addr, rgb8_t pwmRgb);
-	void writeRgb(uint8_t addr, rgb16_t pwmRgb);
-	void writeConsecutiveRgb(uint8_t addr, rgb8_t* pwmRgb, uint8_t length);
-	void writeConsecutiveRgb(uint8_t addr, rgb16_t* pwmRgb, uint16_t length);
-	void writeLed(uint8_t addr, uint8_t pwm);
-	void writeLed(uint8_t addr, uint16_t pwm);
-	void writeConsecutiveLed(uint8_t addr, uint8_t pwm, uint8_t length);
-	void writeConsecutiveLed(uint8_t addr, uint16_t pwm, uint8_t length);
+	template <typename T> WireStatus::WireStatus writeLed(uint8_t index, T pwm);
+	template <typename T> WireStatus::WireStatus writeConsecutiveLed(uint8_t index, T* pPwm, uint8_t length);
 
-	void update();
+	WireStatus::WireStatus update();
 
 private:
 	const uint8_t _led_driver_address;
@@ -145,6 +138,11 @@ private:
 	const bool _isRGB;
 	const bool _is8bit;
 	WireStatus::WireStatus printWireError(uint8_t err);
+//	template <typename T> void writeData(T data);
+	void writeData(uint8_t data);
+	void writeData(uint16_t data);
+	void writeData(rgb8_t data);
+	void writeData(rgb16_t data);
 };
 
 }

@@ -166,7 +166,7 @@ void loop()
 
 		for (int ledIdx = 0; ledIdx < ledLen; ledIdx++) {
 			int rgbCircIdx = ((rgbIdx + ledIdx) >= rgbLen ) ? rgbIdx + ledIdx - rgbLen : rgbIdx + ledIdx;
-			LedDriver.writeRgb(ledIdx, rgbConsts[rgbCircIdx]);
+			LedDriver.writeLed(ledIdx, rgbConsts[rgbCircIdx]);
 		}
 		LedDriver.update();
 		rgbIdx++;

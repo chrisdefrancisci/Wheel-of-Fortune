@@ -3,6 +3,11 @@
  *
  *  Created on: Oct 18, 2022
  *      Author: Chris
+ *	Usage:
+ *		1. Instantiate class with constructor
+ *		2. Call begin()
+ *		3. Call writeRgb()
+ *		4. Call update()
  */
 
 #include "IS31FL3246_LED_driver.h"
@@ -58,11 +63,11 @@ IS31FL3246_LED_driver::~IS31FL3246_LED_driver() {
 
 /**
  * Initializes communication with the LED driver.
+ * @return: The status of the transmission
  */
 WireStatus::WireStatus IS31FL3246_LED_driver::begin() {
 	WireStatus::WireStatus status = WireStatus::SUCCESS;
 	Wire.begin();
-	Serial.println("BEGIN");
 	// setup IO pins
 	pinMode(_sdb_pin, OUTPUT);
 	// Set SDB pin high - enable LED driver
@@ -72,7 +77,6 @@ WireStatus::WireStatus IS31FL3246_LED_driver::begin() {
 	Wire.write(0xFF); // data
 	status = printWireError(Wire.endTransmission());
 	if(status != WireStatus::SUCCESS) {
-		Serial.println("write(RESET_REG) 0xFF failed");
 		return status;
 	}
 	// Set control register: 8-bit mode, normal operation
@@ -81,104 +85,127 @@ WireStatus::WireStatus IS31FL3246_LED_driver::begin() {
 	Wire.write(uint8_t(~(1<<PMS_BIT) & (1<<SSD_BIT) )); // data: 8-bit mode, turn on normal operation
 	status = printWireError(Wire.endTransmission());
 	if(status != WireStatus::SUCCESS) {
-		Serial.println("write(CONTROL_REG) PMS_BIT SSD_BIT failed");
 		return status;
 	}
-	// Set global current
-//	Wire.beginTransmission(LED_DRIVER_ADDRESS); // slave address
-//	Wire.write(GLOBAL_CURRENT_CTRL_REG_G); // register address
-//	Wire.write(GCCG); // data
-//	Wire.write(GCCR); // data, address auto increments
-//	Wire.write(GCCB); // data, address auto increments
-//	printWireError(Wire.endTransmission());
-	rgb8_t globalCurrent = {GCCR, GCCG, GCCB};
-	setRgbCurrent(globalCurrent);
 
-	// Turn on LFP registers
-	// TODO: probably need to do this for all LEDs; what is this constant 0x80?
+	// Set global current
+	rgb8_t globalCurrent = {GCCR, GCCG, GCCB};
+	status = setRgbCurrent(globalCurrent);
+	if(status != WireStatus::SUCCESS) {
+		return status;
+	}
+
+	// Turn on LFP registers for all LEDs
+	// TODO: any other registers that might need to be turned on for all LEDs?
 	Wire.beginTransmission(_led_driver_address); // slave address
-//	Wire.write(LFP_DUTY_REG + RGB_GROUP*RGB_GROUP_SIZE); // register address
 	Wire.write(LFP_DUTY_REG);
 	for (int i = 0; i < N_LEDS; i++){
-		Wire.write(0x80);
+		Wire.write(0x80); // Low frequency PWM duty cycle
 		// TODO: determine if LFP register introduces noise, if so,
 		// change to 0xFF
 	}
 	status = printWireError(Wire.endTransmission());
 	if(status != WireStatus::SUCCESS) {
-		Serial.println("write(CONTROL_REG) PMS_BIT SSD_BIT failed");
 		return status;
 	}
-	Serial.println("END BEGIN");
 
 	return status;
 }
 
 
 /**
- *
- * @param current
+ * Sets the global current for red LEDs
+ * @param current: The global current for red LEDs
+ * @return: The status of the transmission
  */
-void IS31FL3246_LED_driver::setRCurrent(uint8_t current) {
-	// TODO: setRCurrent
+WireStatus::WireStatus IS31FL3246_LED_driver::setRCurrent(uint8_t current) {
+	Wire.beginTransmission(_led_driver_address); // slave address
+	Wire.write(GLOBAL_CURRENT_CTRL_REG_R); // register address
+	Wire.write(current); // data
+	return printWireError(Wire.endTransmission());
 }
 
 /**
- *
- * @param current
+ * Sets the global current for green LEDs
+ * @param current: The global current for green LEDs
+ * @return: The status of the transmission
  */
-void IS31FL3246_LED_driver::setGCurrent(uint8_t current) {
-	// TODO: setGCurrent
+WireStatus::WireStatus IS31FL3246_LED_driver::setGCurrent(uint8_t current) {
+	Wire.beginTransmission(_led_driver_address); // slave address
+	Wire.write(GLOBAL_CURRENT_CTRL_REG_G); // register address
+	Wire.write(current); // data
+	return printWireError(Wire.endTransmission());
 }
 
 /**
- *
- * @param current
+ * Sets the global current for blue LEDs
+ * @param current: The global current for blue LEDs
+ * @return: The status of the transmission
  */
-void IS31FL3246_LED_driver::setBCurrent(uint8_t current) {
-	// TODO: setBCurrent
+WireStatus::WireStatus IS31FL3246_LED_driver::setBCurrent(uint8_t current) {
+	Wire.beginTransmission(_led_driver_address); // slave address
+	Wire.write(GLOBAL_CURRENT_CTRL_REG_B); // register address
+	Wire.write(current); // data
+	return printWireError(Wire.endTransmission());
 }
 
 /**
- *
- * @param currentRgb
+ * Sets the global current for red, green, and blue channels. Note that they are stored in G,R,B order
+ * @param currentRgb: The current for all channels
+ * @return: The status of the transmission
  */
-void IS31FL3246_LED_driver::setRgbCurrent(rgb8_t currentRgb) {
+WireStatus::WireStatus IS31FL3246_LED_driver::setRgbCurrent(rgb8_t currentRgb) {
 	Wire.beginTransmission(_led_driver_address); // slave address
 	Wire.write(GLOBAL_CURRENT_CTRL_REG_G); // register address
 	Wire.write(currentRgb.g); // data
 	Wire.write(currentRgb.r); // data, address auto increments
 	Wire.write(currentRgb.b); // data, address auto increments
-	printWireError(Wire.endTransmission());
+	return printWireError(Wire.endTransmission());
 }
 
 /**
- * Writes to LEDs. LEDs are in G, R, B order from the IC.
+ * Template function to write to LEDs. LEDs are in G, R, B order from the IC.
+ * TODO: test this function for all template values
  * @param index: For single LED mode, this is the index of the LED. For RGB LED mode, this is the RGB LED group.
- * @param pwmRgb: The R, G, B values to write
+ * @param pwm: The PWM value to write
+ * @return: The status of the transmission
  */
-void IS31FL3246_LED_driver::writeRgb(uint8_t index, rgb8_t pwmRgb) {
+template <typename T> WireStatus::WireStatus IS31FL3246_LED_driver::writeLed(uint8_t index, T pwm) {
 	Wire.beginTransmission(_led_driver_address); // peripheral address
 	if (_isRGB){
 		index *=3;
 	}
 	Wire.write(HFP_L_DUTY_REG + index*HFP_REG_SIZE); // register address
-	// data: HFP_L is 8 bits of PWM
-	Wire.write(uint8_t(pwmRgb.g));
-	// data: HFP_H is unused (7:4) Frequency mode select (3:2) HFP_H, 10-bit mode only (1:0)
-	Wire.write(FREQUENCY_MODE_SELECT);
-	Wire.write(uint8_t(pwmRgb.r));
-	Wire.write(FREQUENCY_MODE_SELECT);
-	Wire.write(uint8_t(pwmRgb.b));
-	Wire.write(FREQUENCY_MODE_SELECT);
-	printWireError(Wire.endTransmission());
+	writeData(pwm);
+	return printWireError(Wire.endTransmission());
+}
+
+/**
+ * Template function to write to multiple LEDs. LEDs are in G, R, B order from the IC.
+ * TODO: test this function (hasn't been tested at all)
+ * @param index: For single LED mode, this is the index of the LED. For RGB LED mode, this is the RGB LED group.
+ * @param pPwm: The pointer to the PWM values to write
+ * @param length: The length of the data to write
+ * @return: The status of the transmission
+ */
+template <typename T> WireStatus::WireStatus IS31FL3246_LED_driver::writeConsecutiveLed(uint8_t index, T* pPwm, uint8_t length) {
+	Wire.beginTransmission(_led_driver_address); // peripheral address
+	if (_isRGB){
+		index *=3;
+	}
+	Wire.write(HFP_L_DUTY_REG + index*HFP_REG_SIZE); // register address
+	for(int i = 0; i < length; i++){
+		writeData(*(pPwm+i));
+	}
+	return printWireError(Wire.endTransmission());
 }
 
 
 /**
- *
+ * Writing to update register is necessary to display the
+ * @return: The status of the transmission
  */
-void IS31FL3246_LED_driver::update() {
+WireStatus::WireStatus IS31FL3246_LED_driver::update() {
 	// call update register
 	//slave address
 	Wire.beginTransmission(_led_driver_address);
@@ -186,12 +213,13 @@ void IS31FL3246_LED_driver::update() {
 	Wire.write(UPDATE_REG);
 	// data
 	Wire.write(UPDATE_PWM);
-	printWireError(Wire.endTransmission());
+	return printWireError(Wire.endTransmission());
 }
 
 /**
- *
- * @param err
+ * Prints errors in debug mode.
+ * @param err: The error returned from the Wire library
+ * @return: The status of the transmission
  */
 WireStatus::WireStatus IS31FL3246_LED_driver::printWireError(uint8_t err){
 	// TODO: Turn off prints when not debugging
@@ -215,6 +243,75 @@ WireStatus::WireStatus IS31FL3246_LED_driver::printWireError(uint8_t err){
 	      Serial.println("\tERROR: Other error!!");
 	      break;
 	  }
-	  return err;
+	  return (WireStatus::WireStatus)(err);
 }
+
+
+/**
+ * Overloaded function to write different single/RGB LED 8/10 bits of data
+ * @param data
+ */
+void IS31FL3246_LED_driver::writeData(uint8_t data) {
+	// data: HFP_L is 8 bits of PWM
+	Wire.write(uint8_t(data));
+	// data: HFP_H is unused (7:4) Frequency mode select (3:2) HFP_H, 10-bit mode only (1:0)
+	Wire.write(FREQUENCY_MODE_SELECT);
+}
+
+
+/**
+ * Overloaded function to write different single/RGB LED 8/10 bits of data
+ * @param data
+ */
+void IS31FL3246_LED_driver::writeData(uint16_t data) {
+	// data: HFP_L is 8 bits of PWM
+	Wire.write(uint8_t(data));
+	// data: HFP_H is unused (7:4) Frequency mode select (3:2) HFP_H, 10-bit mode only (1:0)
+	Wire.write(FREQUENCY_MODE_SELECT | uint8_t(data >> 8));
+
+}
+
+
+/**
+ * Overloaded function to write different single/RGB LED 8/10 bits of data
+ * @param data
+ */
+void IS31FL3246_LED_driver::writeData(rgb8_t data) {
+	// data: HFP_L is 8 bits of PWM
+	Wire.write(uint8_t(data.g));
+	// data: HFP_H is unused (7:4) Frequency mode select (3:2) HFP_H, 10-bit mode only (1:0)
+	Wire.write(FREQUENCY_MODE_SELECT);
+	Wire.write(uint8_t(data.r));
+	Wire.write(FREQUENCY_MODE_SELECT);
+	Wire.write(uint8_t(data.b));
+	Wire.write(FREQUENCY_MODE_SELECT);
+}
+
+
+/**
+ * Overloaded function to write different single/RGB LED 8/10 bits of data
+ * @param data
+ */
+void IS31FL3246_LED_driver::writeData(rgb16_t data) {
+	// data: HFP_L is 8 bits of PWM
+	Wire.write(uint8_t(data.g));
+	// data: HFP_H is unused (7:4) Frequency mode select (3:2) HFP_H, 10-bit mode only (1:0)
+	Wire.write(FREQUENCY_MODE_SELECT | uint8_t(data.g >> 8));
+	Wire.write(uint8_t(data.r));
+	Wire.write(FREQUENCY_MODE_SELECT | uint8_t(data.r >> 8));
+	Wire.write(uint8_t(data.b));
+	Wire.write(FREQUENCY_MODE_SELECT | uint8_t(data.b >> 8));
+
+}
+
+
+// Template instantiation
+template WireStatus::WireStatus IS31FL3246_LED_driver::writeLed<uint8_t>(uint8_t index, uint8_t pwm);
+template WireStatus::WireStatus IS31FL3246_LED_driver::writeLed<uint16_t>(uint8_t index, uint16_t pwm);
+template WireStatus::WireStatus IS31FL3246_LED_driver::writeLed<rgb8_t>(uint8_t index, rgb8_t pwm);
+template WireStatus::WireStatus IS31FL3246_LED_driver::writeLed<rgb16_t>(uint8_t index, rgb16_t pwm);
+template WireStatus::WireStatus IS31FL3246_LED_driver::writeConsecutiveLed<uint8_t>(uint8_t index, uint8_t* pPwm, uint8_t length);
+template WireStatus::WireStatus IS31FL3246_LED_driver::writeConsecutiveLed<uint16_t>(uint8_t index, uint16_t* pPwm, uint8_t length);
+template WireStatus::WireStatus IS31FL3246_LED_driver::writeConsecutiveLed<rgb8_t>(uint8_t index, rgb8_t* pPwm, uint8_t length);
+template WireStatus::WireStatus IS31FL3246_LED_driver::writeConsecutiveLed<rgb16_t>(uint8_t index, rgb16_t* pPwm, uint8_t length);
 
