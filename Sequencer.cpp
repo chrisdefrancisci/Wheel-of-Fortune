@@ -22,7 +22,7 @@ const rgb8_t LIME_RGB = {100, 255, 0};
 const rgb8_t GREEN_RGB = {0, 255, 0};
 const rgb8_t SEA_RGB = {0, 255, 80};
 const rgb8_t CYAN_RGB = {0, 255, 255};
-const rgb8_t INDIGO_RGB = {0, 200, 255};
+const rgb8_t INDIGO_RGB = {0, 100, 255};
 
 const rgb8_t BLUE_RGB = {0, 0, 255};
 const rgb8_t PURPLE_RGB = {150, 0, 255};
@@ -34,15 +34,19 @@ const uint8_t rgbLen = 12;
 
 // Global variables
 IS31FL3246_LED_driver LedDriver(led_driver_address, sdb_pin, isRGB, is8bit);
+SequencerDriver	SeqDriver(&LedDriver);
 
 //The setup function is called once at startup of the sketch
 void setup()
 {
+	SeqDriver.begin();
 	// put your setup code here, to run once:
 	Serial.begin(9600);
+	Serial.println("Initializing...");
 	while (LedDriver.begin() != WireStatus::SUCCESS) {
-
+		delay(100);
 	}
+	delay(100);
 
 	/* TODO: Touch sensor code
 	// start the SPI library
@@ -110,6 +114,9 @@ void setup()
 	pKeyStatusUnion.pKeyStatus = &keyStatus;
 	getKeyStatus(pKeyStatusUnion);
 	*/
+
+
+	Serial.println("Setup complete.");
 }
 
 // The loop function is called in an endless loop
@@ -153,26 +160,41 @@ void loop()
 	//  }
 	 */
 
+/** LED driver with interrupts*/
+	static int rgbCircIdx = 0;
+	if (SeqDriver.getStepFlag()){
+		Serial.println("Clearing flag... writing data.");
+		SeqDriver.clearStepFlag();
+		SeqDriver.setNextData(rgbConsts[rgbCircIdx]);
+		SeqDriver.setNextDataIndex(0);
+		rgbCircIdx++;
+		if (rgbCircIdx >= rgbLen) {
+			rgbCircIdx = 0;
+		}
+		LedDriver.writeLed(0, rgbConsts[rgbCircIdx]);
+		LedDriver.update();
+	}
 
-// LED driver loop
 
+/** LED driver loop */
 	//TODO: create animation functions, let this be rainbow loop
 	static unsigned long last_millis = 0;
 	unsigned long this_millis = millis();
-	unsigned long interval_millis = 200;
-	static int rgbIdx = 0;
+	unsigned long interval_millis = 2000;
+//	static int rgbIdx = 0;
 	if (this_millis - last_millis >= interval_millis) {
+		Serial.println("Running...");
 		last_millis = millis();
-
-		for (int ledIdx = 0; ledIdx < ledLen; ledIdx++) {
-			int rgbCircIdx = ((rgbIdx + ledIdx) >= rgbLen ) ? rgbIdx + ledIdx - rgbLen : rgbIdx + ledIdx;
-			LedDriver.writeLed(ledIdx, rgbConsts[rgbCircIdx]);
-		}
-		LedDriver.update();
-		rgbIdx++;
-		if (rgbIdx >= rgbLen) {
-			rgbIdx = 0;
-		}
+//
+//		for (int ledIdx = 0; ledIdx < ledLen; ledIdx++) {
+//			int rgbCircIdx = ((rgbIdx + ledIdx) >= rgbLen ) ? rgbIdx + ledIdx - rgbLen : rgbIdx + ledIdx;
+//			LedDriver.writeLed(ledIdx, rgbConsts[rgbCircIdx]);
+//		}
+//		LedDriver.update();
+//		rgbIdx++;
+//		if (rgbIdx >= rgbLen) {
+//			rgbIdx = 0;
+//		}
 	}
 }
 

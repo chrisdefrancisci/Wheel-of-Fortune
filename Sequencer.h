@@ -11,6 +11,7 @@
 #include "SPI.h"
 //#include "Atmel_AT42-QT1245.h"
 #include "IS31FL3246_LED_driver.h"
+#include "SequencerDriver.h"
 
 
 //end of add your includes here

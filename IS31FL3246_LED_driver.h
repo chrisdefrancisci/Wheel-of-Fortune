@@ -11,11 +11,9 @@
 #include "Arduino.h"
 #include "Wire.h"
 
-namespace IS31FL3246 { // TODO may not be necessary or helpful
-// constants
-
 // Wire library constants
 // End transmission return status
+// TODO: convert to enum class with a static_cast function to uint8_t
 namespace WireStatus{
 enum WireStatus : uint8_t {
 SUCCESS = 0,
@@ -25,6 +23,9 @@ NACK_DATA_ERROR = 3, // received NACK on transmit of data
 OTHER_ERROR = 4
 };
 }
+
+namespace IS31FL3246 { // TODO may not be necessary or helpful
+// constants
 
 
 // LED Driver constants
@@ -89,14 +90,27 @@ const uint8_t FREQUENCY_MODE_SELECT = uint8_t( ~(1<<FMS_BIT_HIGH) & (1<<FMS_BIT_
 //const uint8_t LED_DRIVER_ADDRESS =  B0110000; // this assumes AD connected to GND
 //const uint8_t RGB_GROUP = 11; // note that in datasheet groups are "1-indexed" where here the groups
 // are zero indexed (this would be group 12 in the datasheet)
-const uint8_t GCCG = 0x01; // start with global current control at fraction of max
-const uint8_t GCCR = 0x04;
-const uint8_t GCCB = 0x04;
+const uint8_t GCCG = 0x12; // start with global current control at fraction of max
+const uint8_t GCCR = 0x40;
+const uint8_t GCCB = 0x40;
 
-typedef struct {
-	uint8_t r;
-	uint8_t g;
-	uint8_t b;
+typedef struct rgb8 {
+	uint8_t r = 0;
+	uint8_t g = 0;
+	uint8_t b = 0;
+
+	// TODO: fix this garbage mess. Just want to be able to use volatile variables.
+	// What led me here:
+	// 		1. "conversion of argument 1 would be ill-formed" - turns out I needed to make a volatile copy constructor
+	//		2. Error cannot bind non-const lvalue reference of type const volatile ... turns out I need copy constructors of all possible types:
+	//			https://en.cppreference.com/w/cpp/language/copy_constructor
+
+	rgb8 (const uint8_t &r, const uint8_t &g, const uint8_t &b) : r(r), g(g), b(b) {}
+	rgb8 (uint8_t &r, uint8_t &g, uint8_t &b) : r(r), g(g), b(b) {}
+	rgb8() = default;
+	rgb8(rgb8&) = default;
+	rgb8(const rgb8&) = default;
+	rgb8 (volatile rgb8 &x) : r(x.r), g(x.g), b(x.b) {} // TODO could also do const volatile if i'm feelin spicy
 } rgb8_t;
 
 typedef struct {
@@ -138,7 +152,6 @@ private:
 	const bool _isRGB;
 	const bool _is8bit;
 	WireStatus::WireStatus printWireError(uint8_t err);
-//	template <typename T> void writeData(T data);
 	void writeData(uint8_t data);
 	void writeData(uint16_t data);
 	void writeData(rgb8_t data);

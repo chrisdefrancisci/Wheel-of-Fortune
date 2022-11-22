@@ -89,7 +89,7 @@ WireStatus::WireStatus IS31FL3246_LED_driver::begin() {
 	}
 
 	// Set global current
-	rgb8_t globalCurrent = {GCCR, GCCG, GCCB};
+	rgb8_t globalCurrent(GCCR, GCCG, GCCB);
 	status = setRgbCurrent(globalCurrent);
 	if(status != WireStatus::SUCCESS) {
 		return status;
