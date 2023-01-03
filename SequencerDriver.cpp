@@ -7,12 +7,11 @@
 
 #include "SequencerDriver.h"
 
-SequencerDriver::SequencerDriver(IS31FL3246::IS31FL3246_LED_driver* pLedDriver) {
+SequencerDriver::SequencerDriver() {
 	// TODO: perhaps linked list of sequencers so as one is removed, it's easy to add another
 	// But doesn't really matter since sequencer driver objects won't really be dynamically created and removed
 	_sequencer_id = _sequencer_count;
 	_sequencer_count++;
-	_pLedDriver = pLedDriver;
 
 }
 
@@ -42,8 +41,12 @@ void SequencerDriver::attach(){
 }
 
 void SequencerDriver::step(){
-	stepFlag = true;
-//	_pLedDriver->writeLed(getNextDataIndex(), getNextData()); Apparently I2C should not be inside interrupt
+	_step_flag = true;
+	_this_index = _next_index;
+	_next_index++;
+	if (_next_index >= _length) {
+		_next_index = 0;
+	}
 }
 
 /** Definitions and initializers for static members */

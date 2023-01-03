@@ -10,19 +10,7 @@
 
 #include "Arduino.h"
 #include "Wire.h"
-
-// Wire library constants
-// End transmission return status
-// TODO: convert to enum class with a static_cast function to uint8_t
-namespace WireStatus{
-enum WireStatus : uint8_t {
-SUCCESS = 0,
-DATA_LENGTH_ERROR = 1, // data too long to fit in buffer
-NACK_ADDRESS_ERROR = 2, // received NACK on transmit of address
-NACK_DATA_ERROR = 3, // received NACK on transmit of data
-OTHER_ERROR = 4
-};
-}
+#include "WireStatus.h"
 
 namespace IS31FL3246 { // TODO may not be necessary or helpful
 // constants
@@ -95,22 +83,9 @@ const uint8_t GCCR = 0x40;
 const uint8_t GCCB = 0x40;
 
 typedef struct rgb8 {
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-
-	// TODO: fix this garbage mess. Just want to be able to use volatile variables.
-	// What led me here:
-	// 		1. "conversion of argument 1 would be ill-formed" - turns out I needed to make a volatile copy constructor
-	//		2. Error cannot bind non-const lvalue reference of type const volatile ... turns out I need copy constructors of all possible types:
-	//			https://en.cppreference.com/w/cpp/language/copy_constructor
-
-	rgb8 (const uint8_t &r, const uint8_t &g, const uint8_t &b) : r(r), g(g), b(b) {}
-	rgb8 (uint8_t &r, uint8_t &g, uint8_t &b) : r(r), g(g), b(b) {}
-	rgb8() = default;
-	rgb8(rgb8&) = default;
-	rgb8(const rgb8&) = default;
-	rgb8 (volatile rgb8 &x) : r(x.r), g(x.g), b(x.b) {} // TODO could also do const volatile if i'm feelin spicy
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
 } rgb8_t;
 
 typedef struct {
@@ -134,24 +109,24 @@ public:
 	IS31FL3246_LED_driver(uint8_t led_driver_address, uint8_t sdb_pin, bool isRGB, bool is8bit);
 	virtual ~IS31FL3246_LED_driver();
 
-	WireStatus::WireStatus begin();
+	WireStatus::ReturnStatus begin();
 
-	WireStatus::WireStatus setRCurrent(uint8_t current);
-	WireStatus::WireStatus setGCurrent(uint8_t current);
-	WireStatus::WireStatus setBCurrent(uint8_t current);
-	WireStatus::WireStatus setRgbCurrent(rgb8_t currentRgb);
+	WireStatus::ReturnStatus setRCurrent(uint8_t current);
+	WireStatus::ReturnStatus setGCurrent(uint8_t current);
+	WireStatus::ReturnStatus setBCurrent(uint8_t current);
+	WireStatus::ReturnStatus setRgbCurrent(rgb8_t currentRgb);
 
-	template <typename T> WireStatus::WireStatus writeLed(uint8_t index, T pwm);
-	template <typename T> WireStatus::WireStatus writeConsecutiveLed(uint8_t index, T* pPwm, uint8_t length);
+	template <typename T> WireStatus::ReturnStatus writeLed(uint8_t index, T pwm);
+	template <typename T> WireStatus::ReturnStatus writeConsecutiveLed(uint8_t index, T* pPwm, uint8_t length);
 
-	WireStatus::WireStatus update();
+	WireStatus::ReturnStatus update();
 
 private:
 	const uint8_t _led_driver_address;
 	const uint8_t _sdb_pin;
 	const bool _isRGB;
 	const bool _is8bit;
-	WireStatus::WireStatus printWireError(uint8_t err);
+	WireStatus::ReturnStatus printWireError(uint8_t err);
 	void writeData(uint8_t data);
 	void writeData(uint16_t data);
 	void writeData(rgb8_t data);
