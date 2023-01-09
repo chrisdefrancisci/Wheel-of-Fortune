@@ -5,34 +5,7 @@ using namespace IS31FL3246;
 
 // Constants
 
-// LED Driver
-const uint8_t led_driver_address = B0110000; // AD connected to GND
-//const uint8_t led_driver_address = B0110011; // AD connected to +5V
-const uint8_t sdb_pin = 9;
-const bool isRGB = true;
-const bool is8bit = true;
-const uint8_t ledLen = 12;
 
-// Colors
-const rgb8_t BLACK_RGB = {0, 0, 0};
-
-const rgb8_t RED_RGB = {255, 0, 0};
-const rgb8_t ORANGE_RGB = {255, 100, 0};
-const rgb8_t YELLOW_RGB = {255, 255, 0};
-const rgb8_t LIME_RGB = {100, 255, 0};
-
-const rgb8_t GREEN_RGB = {0, 255, 0};
-const rgb8_t SEA_RGB = {0, 255, 80};
-const rgb8_t CYAN_RGB = {0, 255, 255};
-const rgb8_t INDIGO_RGB = {0, 100, 255};
-
-const rgb8_t BLUE_RGB = {0, 0, 255};
-const rgb8_t PURPLE_RGB = {150, 0, 255};
-const rgb8_t VIOLET_RGB = {255, 0, 255};
-const rgb8_t MAGENTA_RGB = {255, 0, 50};
-rgb8_t rgbConsts[] = {RED_RGB, ORANGE_RGB, YELLOW_RGB, LIME_RGB, GREEN_RGB,
-		SEA_RGB, CYAN_RGB, INDIGO_RGB, BLUE_RGB, PURPLE_RGB, VIOLET_RGB, MAGENTA_RGB};
-const uint8_t rgbLen = 12;
 
 // DAC
 const uint8_t dac_driver_address = B0001100;
@@ -49,7 +22,7 @@ volatile uint8_t* pDevResetPort = &PORTB;
 const uint8_t devReset = 1 << 1;
 
 // Global variables
-IS31FL3246_LED_driver LedDriver(led_driver_address, sdb_pin, isRGB, is8bit);
+Display DisplayDriver;
 SequencerDriver	SeqDriver;
 AD5695 DacDriver(dac_driver_address);
 uint16_t* sequence = new uint16_t[SeqDriver.getMaxLength()];
@@ -60,7 +33,7 @@ void setup()
 
 	// Pin setups
 	*pDebugLedSetup |= debugLed; // Set to output (1)
-	*pDebugLedPort |= debugLed; // Set high
+//	*pDebugLedPort |= debugLed; // Set high
 	*pDevResetSetup |= devReset; // Set to output (1)
 	*pDevResetPort |= devReset; // Set high
 
@@ -72,12 +45,17 @@ void setup()
 	DacDriver.begin();
 
 	// Peripheral setups
+	DisplayDriver.begin();
 	SeqDriver.begin(); // Turn on interrupts last
-	while (LedDriver.begin() != WireStatus::SUCCESS) {
-		delay(5);
+
+	while (!DisplayDriver.rainbowLoop(100)){
+
 	}
+//	while (LedDriver.begin() != WireStatus::SUCCESS) {
+//		delay(5);
+//	}
 	// Write initial values to be updated on first tick of timer
-	LedDriver.writeLed(SeqDriver.getNextIndex(), rgbConsts[0]);
+//	LedDriver.writeLed(SeqDriver.getNextIndex(), rgbConsts[0]);
 
 	/* TODO: Touch sensor code
 	// start the SPI library
@@ -153,6 +131,7 @@ void setup()
 		Serial.print("Initialized sequence["); Serial.print(i);
 		Serial.print("] to "); Serial.println(sequence[i]);
 	}
+	DisplayDriver.circleOff();
 }
 
 // The loop function is called in an endless loop
@@ -198,30 +177,13 @@ void loop()
 	/** Sequencer interrupts */
 	static int rgbCircIdx = 0;
 	if (SeqDriver.getStepFlag()){
-		Serial.print("Entering... ");
 		SeqDriver.clearStepFlag(); // Clear flag immediately
-		Serial.print(sequence[SeqDriver.getThisIndex()], HEX); Serial.print(": ");
+//		Serial.print(sequence[SeqDriver.getThisIndex()], HEX); Serial.print(": ");
+		// Write output to DAC
 		WireStatus::printWireStatus(DacDriver.writeVout(DAC_ALL, sequence[SeqDriver.getThisIndex()]));
-//		LedDriver.update(); // Then update the output
-
-		// Calculate and send the next data
-		rgbCircIdx++;
-		if (rgbCircIdx >= rgbLen) {
-			rgbCircIdx = 0;
-		}
-		*pDebugLedPort ^= debugLed; // Toggle LED
-		uint16_t dac_data = 0xEFEF; // bogus value
-		WireStatus::printWireStatus(DacDriver.readVout(DACA, dac_data));
-		Serial.print(dac_data>>2, HEX); Serial.print(", ");
-		dac_data = 0xEFEF; // bogus value
-		WireStatus::printWireStatus(DacDriver.readVout(DACB, dac_data));
-		Serial.print(dac_data>>2, HEX); Serial.print(", ");
-		dac_data = 0xEFEF; // bogus value
-		WireStatus::printWireStatus(DacDriver.readVout(DACC, dac_data));
-		Serial.print(dac_data>>2, HEX); Serial.print(", ");
-		dac_data = 0xEFEF; // bogus value
-		WireStatus::printWireStatus(DacDriver.readVout(DACD, dac_data));
-		Serial.print(dac_data>>2, HEX); Serial.println();
+		// Update display
+		DisplayDriver.step(SeqDriver.getId(), SeqDriver.getThisIndex());
+//		*pDebugLedPort ^= debugLed; // Toggle LED
 //		LedDriver.writeLed(SeqDriver.getThisIndex(), BLACK_RGB);
 //		LedDriver.writeLed(SeqDriver.getNextIndex(), rgbConsts[rgbCircIdx]);
 		Serial.println(" Exiting.");

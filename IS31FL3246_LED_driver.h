@@ -17,7 +17,8 @@ namespace IS31FL3246 { // TODO may not be necessary or helpful
 
 
 // LED Driver constants
-const uint8_t N_LEDS = 24;
+const uint8_t N_LEDS = 36;
+const uint8_t N_RGB_LEDS = 12;
 
 // Control register (*table 3, table 4 of datasheet)
 const uint8_t CONTROL_REG = 0x00;

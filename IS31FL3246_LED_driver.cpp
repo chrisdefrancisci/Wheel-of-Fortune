@@ -42,7 +42,10 @@ using namespace IS31FL3246;
 
 /**
  * Constructor
- * @param isRGB Denotes whether the driver controls 13 groups of 3(RGB) LEDs or 39 unassociated LEDs
+ * @param led_driver_address
+ * @param sdb_pin
+ * @param isRGB isRGB Denotes whether the driver controls 13 groups of 3(RGB) LEDs or 39 unassociated LEDs
+ * @param is8bit
  */
 IS31FL3246_LED_driver::IS31FL3246_LED_driver(uint8_t led_driver_address, uint8_t sdb_pin, bool isRGB=true, bool is8bit=true) :
 	_led_driver_address(led_driver_address),

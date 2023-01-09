@@ -13,6 +13,7 @@
 #include "IS31FL3246_LED_driver.h"
 #include "SequencerDriver.h"
 #include "AD5695.h"
+#include "Display.h"
 
 
 //end of add your includes here

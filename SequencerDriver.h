@@ -30,10 +30,11 @@ public:
 	inline bool getStepFlag() { return _step_flag; }
 	inline void clearStepFlag() { _step_flag = false; }
 	inline uint8_t getThisIndex(){ return _this_index; }
-	inline uint8_t getNextIndex(){ return _next_index; }
+	inline uint8_t getNextIndex(){ return _next_index; } // TODO: should this be public?
 	inline uint8_t getMaxLength() {return _max_length;}
 	inline uint8_t getSequenceLength() {return _length;}
 	inline void setSequenceLength(uint8_t len) { _length = len;}
+	inline uint8_t getId() { return _sequencer_id; }
 
 private:
 
