@@ -25,7 +25,6 @@ const uint8_t devReset = 1 << 1;
 Display DisplayDriver;
 SequencerDriver	SeqDriver;
 AD5695 DacDriver(dac_driver_address);
-uint16_t* sequence = new uint16_t[SeqDriver.getMaxLength()];
 
 //The setup function is called once at startup of the sketch
 void setup()
@@ -46,7 +45,6 @@ void setup()
 
 	// Peripheral setups
 	DisplayDriver.begin();
-	SeqDriver.begin(); // Turn on interrupts last
 
 	while (!DisplayDriver.rainbowLoop(100)){
 
@@ -126,12 +124,10 @@ void setup()
 
 
 	Serial.println("Setup complete.");
-	for (uint8_t i = 0; i < SeqDriver.getMaxLength(); i++){
-		sequence[i] = rand() % 16384;
-		Serial.print("Initialized sequence["); Serial.print(i);
-		Serial.print("] to "); Serial.println(sequence[i]);
-	}
 	DisplayDriver.circleOff();
+
+	// clear flags for fresh start
+	SeqDriver.begin(); // Turn on interrupts last
 }
 
 // The loop function is called in an endless loop
@@ -175,17 +171,31 @@ void loop()
 	//  }
 	 */
 	/** Sequencer interrupts */
-	static int rgbCircIdx = 0;
 	if (SeqDriver.getStepFlag()){
 		SeqDriver.clearStepFlag(); // Clear flag immediately
 //		Serial.print(sequence[SeqDriver.getThisIndex()], HEX); Serial.print(": ");
 		// Write output to DAC
-		WireStatus::printWireStatus(DacDriver.writeVout(DAC_ALL, sequence[SeqDriver.getThisIndex()]));
+		WireStatus::printWireStatus(DacDriver.writeVout(DACA, SeqDriver.getThisValue()));
 		// Update display
 		DisplayDriver.step(SeqDriver.getId(), SeqDriver.getThisIndex());
 //		*pDebugLedPort ^= debugLed; // Toggle LED
 //		LedDriver.writeLed(SeqDriver.getThisIndex(), BLACK_RGB);
 //		LedDriver.writeLed(SeqDriver.getNextIndex(), rgbConsts[rgbCircIdx]);
+
+
+		// TODO: implement actual write functionality. Until then, this cycles through the five
+		// octaves
+		if (SeqDriver.getThisIndex() == SeqDriver.getSequenceLength() - 1) {
+			static uint8_t octave = 0;
+			for (uint8_t i = 0; i < SeqDriver.getSequenceLength(); i++) {
+				SeqDriver.setValue(i, octave*SeqDriver.getSequenceLength() + i);
+			}
+			octave++;
+			if (octave >= N_OCTAVES) {
+				octave = 0;
+			}
+		}
+
 		Serial.println(" Exiting.");
 	}
 

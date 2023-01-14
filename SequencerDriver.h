@@ -11,8 +11,10 @@
 
 #include "Arduino.h"
 #include "IS31FL3246_LED_driver.h"
+#include "DAC_14_bit_notes.h"
 
 constexpr uint8_t N_SEQUENCERS = 4; // 4 sequencers, for 4 outputs
+constexpr uint8_t N_OCTAVES = 5; // 5 octave range
 
 class SequencerDriver {
 public:
@@ -30,11 +32,13 @@ public:
 	inline bool getStepFlag() { return _step_flag; }
 	inline void clearStepFlag() { _step_flag = false; }
 	inline uint8_t getThisIndex(){ return _this_index; }
-	inline uint8_t getNextIndex(){ return _next_index; } // TODO: should this be public?
 	inline uint8_t getMaxLength() {return _max_length;}
 	inline uint8_t getSequenceLength() {return _length;}
 	inline void setSequenceLength(uint8_t len) { _length = len;}
 	inline uint8_t getId() { return _sequencer_id; }
+	inline void setValue(uint8_t index, uint8_t note){ data[index] = getDacValue(note); }
+	inline void setThisValue(uint8_t note){ data[_this_index] = getDacValue(note); }
+	inline uint16_t getThisValue(){ return data[_this_index]; }
 
 private:
 
@@ -50,22 +54,24 @@ private:
 	void attach();
 	void step();
 	static uint8_t _sequencer_count;
-	uint8_t _sequencer_id;
+	static constexpr uint8_t _max_length = 12;
+
+	// methods
+	inline uint16_t getDacValue(uint8_t note) { return pgm_read_word_near(NOTES2DAC + note); }
 
 	// instance specific
 	// could also make this more extensible with a virtual parent class of led driver + DAC
 
 	//data that can change
-	const uint8_t _max_length = 12;
+	uint8_t _sequencer_id;
 	uint8_t _bpm = 120;
-
-	uint16_t* data = new uint16_t[_max_length];
+	uint16_t data[_max_length] = {0};
 
 	// variables used in ISR;
 	volatile bool _step_flag;
 	volatile uint8_t _length = 12;
 	volatile uint8_t _this_index = _length-1;
-	volatile uint8_t _next_index = 0;
+	volatile uint8_t _next_index = 0; // TODO: why have this at all?
 
 
 };

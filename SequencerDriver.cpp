@@ -29,7 +29,7 @@ void SequencerDriver::begin(){
 	TCCR1B = 0; // Clear register
 	TCNT1 = 0; // initialize counter value to 0
 	// Set compare match register
-	OCR1A = 15624; // 16,000,000/(1024*255) = 61 Hz
+	OCR1A = 15624; // 16,000,000/(1024*255) = 61 Hz TODO: are you sure????
 	TCCR1B |= (1 << WGM12); // Turn on CTC? mode
 	TCCR1B |= (1 << CS12) | (1 << CS10); // Set 2 bits for 1024 prescalar
 	TIMSK1 |= (1 << OCIE1A); // Enable timer compare interrupt
@@ -51,6 +51,7 @@ void SequencerDriver::step(){
 
 /** Definitions and initializers for static members */
 SequencerDriver* SequencerDriver::instances[N_SEQUENCERS] = {};
+uint8_t SequencerDriver::_sequencer_count = 0;
 
 void (*const SequencerDriver::HANDLERS[N_SEQUENCERS])() =
 {
@@ -59,8 +60,6 @@ void (*const SequencerDriver::HANDLERS[N_SEQUENCERS])() =
 		SequencerDriver::handler<2>,
 		SequencerDriver::handler<3>,
 };
-uint8_t SequencerDriver::_sequencer_count = 0;
-
 
 ISR(TIMER1_COMPA_vect) {
 	for(uint8_t i=0; i < SequencerDriver::getSequencerCount(); i++) {
