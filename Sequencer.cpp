@@ -49,6 +49,14 @@ void setup()
 	while (!DisplayDriver.rainbowLoop(100)){
 
 	}
+
+	// attempt to initialize device
+	while(!AT42QT1245_init())
+	{
+		Serial.println("Unable to contact sensor. Waiting 2 seconds.");
+		delay(2000);
+	}
+
 //	while (LedDriver.begin() != WireStatus::SUCCESS) {
 //		delay(5);
 //	}
@@ -196,8 +204,10 @@ void loop()
 			}
 		}
 
-		Serial.println(" Exiting.");
+		Serial.println("   Cleared stepFlag.");
 	}
+	byte pKeyStatus;
+	//printPressedKeys(&pKeyStatus);
 
 }
 

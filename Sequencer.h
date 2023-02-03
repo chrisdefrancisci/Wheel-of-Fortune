@@ -14,6 +14,7 @@
 #include "SequencerDriver.h"
 #include "AD5695.h"
 #include "Display.h"
+#include "Atmel_AT42-QT1245.h"
 
 
 //end of add your includes here
