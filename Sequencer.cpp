@@ -50,18 +50,15 @@ void setup()
 
 	}
 
+	// TODO: add to Atmel_AT42-QT1245 init
+	pinMode(nCHANGE_pin, INPUT); // TODO: !!! MUST ATTACH INTERRUPT FOR THIS TO WORK !!!
+    attachInterrupt(digitalPinToInterrupt(nCHANGE_pin), nCHANGE_ISR, LOW);
 	// attempt to initialize device
 	while(!AT42QT1245_init())
 	{
 		Serial.println("Unable to contact sensor. Waiting 2 seconds.");
 		delay(2000);
 	}
-
-//	while (LedDriver.begin() != WireStatus::SUCCESS) {
-//		delay(5);
-//	}
-	// Write initial values to be updated on first tick of timer
-//	LedDriver.writeLed(SeqDriver.getNextIndex(), rgbConsts[0]);
 
 	/* TODO: Touch sensor code
 	// start the SPI library
@@ -134,7 +131,6 @@ void setup()
 	Serial.println("Setup complete.");
 	DisplayDriver.circleOff();
 
-	// clear flags for fresh start
 	SeqDriver.begin(); // Turn on interrupts last
 }
 
@@ -143,7 +139,7 @@ void loop()
 {
 //Add your repeated code here
 
-	/* TODO Touch sensor code
+	// TODO Touch sensor code
 	//  const int poll_time = 2000; // ms
 	//  static unsigned long int last_poll = 0;
 	//  unsigned long int this_poll = millis();
@@ -177,7 +173,8 @@ void loop()
 	//    Serial.println();
 	//    last_poll = this_poll;
 	//  }
-	 */
+
+
 	/** Sequencer interrupts */
 	if (SeqDriver.getStepFlag()){
 		SeqDriver.clearStepFlag(); // Clear flag immediately
@@ -206,8 +203,5 @@ void loop()
 
 		Serial.println("   Cleared stepFlag.");
 	}
-	byte pKeyStatus;
-	//printPressedKeys(&pKeyStatus);
-
 }
 

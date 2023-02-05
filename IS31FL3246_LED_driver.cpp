@@ -169,6 +169,7 @@ WireStatus::ReturnStatus IS31FL3246_LED_driver::setRgbCurrent(rgb8_t currentRgb)
 /**
  * Template function to write to LEDs. LEDs are in G, R, B order from the IC.
  * TODO: test this function for all template values
+ * @tparam T
  * @param index: For single LED mode, this is the index of the LED. For RGB LED mode, this is the RGB LED group.
  * @param pwm: The PWM value to write
  * @return: The status of the transmission
@@ -186,6 +187,7 @@ template <typename T> WireStatus::ReturnStatus IS31FL3246_LED_driver::writeLed(u
 /**
  * Template function to write to multiple LEDs. LEDs are in G, R, B order from the IC.
  * TODO: test this function (hasn't been tested at all)
+ * @tparam T
  * @param index: For single LED mode, this is the index of the LED. For RGB LED mode, this is the RGB LED group.
  * @param pPwm: The pointer to the PWM values to write
  * @param length: The length of the data to write
