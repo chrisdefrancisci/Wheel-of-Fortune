@@ -16,8 +16,6 @@
 #include "SequencerDriver.h"
 #include "Arduino.h"
 
-using namespace IS31FL3246;
-
 // Colors
 const rgb8_t OFF_RGB = {0, 0, 0};
 const rgb8_t WHITE_RGB = {255, 255, 255};

@@ -1,8 +1,6 @@
 // Do not remove the include below
 #include "Sequencer.h"
 
-using namespace IS31FL3246;
-
 // Constants
 
 
@@ -25,6 +23,8 @@ const uint8_t devReset = 1 << 1;
 Display DisplayDriver;
 SequencerDriver	SeqDriver;
 AD5695 DacDriver(dac_driver_address);
+
+AT42_QT1245_Touch_driver TouchDriver(CHIP_SELECT_PIN, NCHANGE_PIN, NDRDY_PIN, ARDUINO_SELECT_PIN);
 
 //The setup function is called once at startup of the sketch
 void setup()
@@ -51,10 +51,10 @@ void setup()
 	}
 
 	// TODO: add to Atmel_AT42-QT1245 init
-	pinMode(nCHANGE_pin, INPUT); // TODO: !!! MUST ATTACH INTERRUPT FOR THIS TO WORK !!!
-    attachInterrupt(digitalPinToInterrupt(nCHANGE_pin), nCHANGE_ISR, LOW);
+	pinMode(NCHANGE_PIN, INPUT); // TODO: !!! MUST ATTACH INTERRUPT FOR THIS TO WORK !!!
+    attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
 	// attempt to initialize device
-	while(!AT42QT1245_init())
+	while(TouchDriver.begin() != CommStatus::Success)
 	{
 		Serial.println("Unable to contact sensor. Waiting 2 seconds.");
 		delay(2000);
@@ -69,8 +69,8 @@ void setup()
 	//  pinMode(12, INPUT);
 
 	// nCHANGE pin interrupt
-	pinMode(nCHANGE_pin, INPUT);
-	attachInterrupt(digitalPinToInterrupt(nCHANGE_pin), nCHANGE_ISR, LOW);
+	pinMode(NCHANGE_PIN, INPUT);
+	attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
 	pinMode(nDRDY_pin, INPUT);
 	// attempt to initialize device
 	while(!AT42QT1245_init())
@@ -159,11 +159,11 @@ void loop()
 	    new_touch = false;
 	    Serial.print("New touch detected: "); Serial.flush();
 
-	    getKeyStatus(pKeyStatusUnion);
+	    TouchDriver.getKeyStatus(pKeyStatusUnion);
 	//    printKeyStatusChange(pLastKeyStatusUnion, pKeyStatusUnion);
-	    printPressedKeys(pKeyStatusUnion.pKeyStatusByte);
+	    //TouchDriver.printPressedKeys(pKeyStatusUnion.pKeyStatusUint8_t);
 	    Serial.println(); Serial.flush();
-	    attachInterrupt(digitalPinToInterrupt(nCHANGE_pin), nCHANGE_ISR, LOW);
+	    attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
 	  }
 	//  if (this_poll - last_poll > poll_time)
 	//  {
@@ -180,7 +180,7 @@ void loop()
 		SeqDriver.clearStepFlag(); // Clear flag immediately
 //		Serial.print(sequence[SeqDriver.getThisIndex()], HEX); Serial.print(": ");
 		// Write output to DAC
-		WireStatus::printWireStatus(DacDriver.writeVout(DACA, SeqDriver.getThisValue()));
+		//printWireStatus(DacDriver.writeVout(DACA, SeqDriver.getThisValue()));
 		// Update display
 		DisplayDriver.step(SeqDriver.getId(), SeqDriver.getThisIndex());
 //		*pDebugLedPort ^= debugLed; // Toggle LED

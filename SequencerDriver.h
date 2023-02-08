@@ -41,17 +41,14 @@ public:
 	inline uint16_t getThisValue(){ return data[_this_index]; }
 
 private:
-
 	// Management of SequencerDriver across all instances
 	// this is from this tutorial:
 	// https://arduino.stackexchange.com/questions/65010/attachinterrupt-fail-to-initiate-inside-a-class
 	static SequencerDriver* instances[N_SEQUENCERS];
 
-	template <uint8_t SEQUENCER> static void handler()
-	{
+	template <uint8_t SEQUENCER> static void handler() {
 		instances[SEQUENCER]->step();
 	}
-	void attach();
 	void step();
 	static uint8_t _sequencer_count;
 	static constexpr uint8_t _max_length = 12;
@@ -63,7 +60,7 @@ private:
 	// could also make this more extensible with a virtual parent class of led driver + DAC
 
 	//data that can change
-	uint8_t _sequencer_id;
+	uint8_t _sequencer_id = 0;
 	uint8_t _bpm = 120;
 	uint16_t data[_max_length] = {0};
 

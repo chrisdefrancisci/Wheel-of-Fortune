@@ -9,8 +9,8 @@
 #define AD5695_H_
 
 #include "Arduino.h"
+#include "CommStatus.h"
 #include "Wire.h"
-#include "WireStatus.h"
 
 enum DacAddr : uint8_t{
 	/** DAC Addresses */
@@ -28,10 +28,10 @@ public:
 	AD5695(uint8_t device_address);
 	virtual ~AD5695();
 
-	WireStatus::ReturnStatus begin();
+	CommStatus begin();
 
-	WireStatus::ReturnStatus writeVout(DacAddr dac_addr, uint16_t dac_data);
-	WireStatus::ReturnStatus readVout(DacAddr dac_addr, uint16_t &dac_data);
+	CommStatus writeVout(DacAddr dac_addr, uint16_t dac_data);
+	CommStatus readVout(DacAddr dac_addr, uint16_t &dac_data);
 
 private:
 	const uint8_t _device_address;

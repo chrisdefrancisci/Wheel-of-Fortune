@@ -7,21 +7,29 @@
 
 #include "SequencerDriver.h"
 
-SequencerDriver::SequencerDriver() {
+/**
+ *
+ */
+SequencerDriver::SequencerDriver(void) {
 	// TODO: perhaps linked list of sequencers so as one is removed, it's easy to add another
 	// But doesn't really matter since sequencer driver objects won't really be dynamically created and removed
 	_sequencer_id = _sequencer_count;
 	_sequencer_count++;
-
+	instances[_sequencer_id] = this;
 }
 
-SequencerDriver::~SequencerDriver() {
+/**
+ *
+ */
+SequencerDriver::~SequencerDriver(void) {
 	instances[_sequencer_id] = NULL;
 	_sequencer_count--;
 }
 
-void SequencerDriver::begin(){
-	attach();
+/**
+ *
+ */
+void SequencerDriver::begin(void){
 	// Set up interrupts
 	cli(); // Stop interrupts
 	// Set timer1 interrupt
@@ -36,11 +44,10 @@ void SequencerDriver::begin(){
 	sei(); // Enable interrupts
 }
 
-void SequencerDriver::attach(){
-	instances[_sequencer_id] = this;
-}
-
-void SequencerDriver::step(){
+/**
+ *
+ */
+void SequencerDriver::step(void){
 	_step_flag = true;
 	_this_index = _next_index;
 	_next_index++;
@@ -53,7 +60,10 @@ void SequencerDriver::step(){
 SequencerDriver* SequencerDriver::instances[N_SEQUENCERS] = {};
 uint8_t SequencerDriver::_sequencer_count = 0;
 
-void (*const SequencerDriver::HANDLERS[N_SEQUENCERS])() =
+/**
+ *
+ */
+void (*const SequencerDriver::HANDLERS[N_SEQUENCERS])(void) =
 {
 		SequencerDriver::handler<0>,
 		SequencerDriver::handler<1>,
@@ -61,6 +71,9 @@ void (*const SequencerDriver::HANDLERS[N_SEQUENCERS])() =
 		SequencerDriver::handler<3>,
 };
 
+/**
+ *
+ */
 ISR(TIMER1_COMPA_vect) {
 	for(uint8_t i=0; i < SequencerDriver::getSequencerCount(); i++) {
 		SequencerDriver::HANDLERS[i]();

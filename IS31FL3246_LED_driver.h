@@ -1,4 +1,4 @@
-/*
+/**
  * IS31FL3246_LED_driver.h
  *
  *  Created on: Oct 18, 2022
@@ -9,10 +9,9 @@
 #define IS31FL3246_LED_DRIVER_H_
 
 #include "Arduino.h"
+#include "CommStatus.h"
 #include "Wire.h"
-#include "WireStatus.h"
 
-namespace IS31FL3246 { // TODO may not be necessary or helpful
 // constants
 
 
@@ -108,31 +107,30 @@ typedef struct {
 class IS31FL3246_LED_driver {
 public:
 	IS31FL3246_LED_driver(uint8_t led_driver_address, uint8_t sdb_pin, bool isRGB, bool is8bit);
-	virtual ~IS31FL3246_LED_driver();
+	virtual ~IS31FL3246_LED_driver(void);
 
-	WireStatus::ReturnStatus begin();
+	CommStatus begin(void);
 
-	WireStatus::ReturnStatus setRCurrent(uint8_t current);
-	WireStatus::ReturnStatus setGCurrent(uint8_t current);
-	WireStatus::ReturnStatus setBCurrent(uint8_t current);
-	WireStatus::ReturnStatus setRgbCurrent(rgb8_t currentRgb);
+	CommStatus setRCurrent(uint8_t current);
+	CommStatus setGCurrent(uint8_t current);
+	CommStatus setBCurrent(uint8_t current);
+	CommStatus setRgbCurrent(rgb8_t currentRgb);
 
-	template <typename T> WireStatus::ReturnStatus writeLed(uint8_t index, T pwm);
-	template <typename T> WireStatus::ReturnStatus writeConsecutiveLed(uint8_t index, T* pPwm, uint8_t length);
+	template <typename T> CommStatus writeLed(uint8_t index, T pwm);
+	template <typename T> CommStatus writeConsecutiveLed(uint8_t index, T* pPwm, uint8_t length);
 
-	WireStatus::ReturnStatus update();
+	CommStatus update();
 
 private:
 	const uint8_t _led_driver_address;
 	const uint8_t _sdb_pin;
 	const bool _isRGB;
 	const bool _is8bit;
-	WireStatus::ReturnStatus printWireError(uint8_t err);
+	CommStatus printWireError(uint8_t err);
 	void writeData(uint8_t data);
 	void writeData(uint16_t data);
 	void writeData(rgb8_t data);
 	void writeData(rgb16_t data);
 };
 
-}
 #endif /* IS31FL3246_LED_DRIVER_H_ */

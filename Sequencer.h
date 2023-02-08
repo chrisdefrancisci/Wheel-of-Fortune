@@ -10,14 +10,13 @@
 //add your includes for the project Sequencer here
 
 // My header files
+#include "CommStatus.h"
 #include "IS31FL3246_LED_driver.h"
 #include "SequencerDriver.h"
 #include "AD5695.h"
 #include "Display.h"
-#include "Atmel_AT42-QT1245.h"
-
-// Arduino includes
 #include "Arduino.h"
+#include "AT42_QT1245_Touch_driver.h"
 #include "SPI.h"
 
 
@@ -41,7 +40,7 @@ byte data_read = false;
 void nCHANGE_ISR()
 {
   new_touch = true;
-  detachInterrupt(digitalPinToInterrupt(nCHANGE_pin));
+  detachInterrupt(digitalPinToInterrupt(NCHANGE_PIN));
 }
 
 //Do not add code below this line
