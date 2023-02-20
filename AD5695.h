@@ -12,15 +12,18 @@
 #include "CommStatus.h"
 #include "Wire.h"
 
-enum DacAddr : uint8_t{
+enum class DacAddr : uint8_t{
 	/** DAC Addresses */
 	DACA = 1<<0,
 	DACB = 1<<1,
 	DACC = 1<<2,
-	DACD = 1<<3,
-	DAC_ALL = 0x0F
-	// TODO: DAC addresses can be OR'd or added to write to multiple DACs at once, implement operators or remove enum
+	DACD = 1<<3
 };
+
+DacAddr operator|= (const DacAddr& a, const DacAddr& b);
+DacAddr operator| (const DacAddr& a, const DacAddr& b);
+DacAddr operator+= (const DacAddr& a, const DacAddr& b);
+DacAddr operator+ (const DacAddr& a, const DacAddr& b);
 
 
 class AD5695 {

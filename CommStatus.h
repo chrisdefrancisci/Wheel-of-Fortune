@@ -25,7 +25,6 @@ CommStatus printWireStatus(CommStatus err);
 inline CommStatus printWireStatus(uint8_t err){ return printWireStatus(CommStatus(err)); };
 
 CommStatus operator|= (const CommStatus& a, const CommStatus& b);
-
 CommStatus operator&= (const CommStatus& a, const CommStatus& b);
 
 #endif /* COMM_STATUS_H_ */

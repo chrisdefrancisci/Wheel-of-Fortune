@@ -24,7 +24,8 @@ Display DisplayDriver;
 SequencerDriver	SeqDriver;
 AD5695 DacDriver(dac_driver_address);
 
-AT42_QT1245_Touch_driver TouchDriver(CHIP_SELECT_PIN, NCHANGE_PIN, NDRDY_PIN, ARDUINO_SELECT_PIN);
+//AT42_QT1245_Touch_driver TouchDriver(CHIP_SELECT_PIN, NCHANGE_PIN, NDRDY_PIN, ARDUINO_SELECT_PIN);
+CapacitiveButtons TouchDriver(CHIP_SELECT_PIN, NCHANGE_PIN, NDRDY_PIN, ARDUINO_SELECT_PIN, &DisplayDriver);
 
 //The setup function is called once at startup of the sketch
 void setup()
@@ -50,130 +51,45 @@ void setup()
 
 	}
 
-	// TODO: add to Atmel_AT42-QT1245 init
-	pinMode(NCHANGE_PIN, INPUT); // TODO: !!! MUST ATTACH INTERRUPT FOR THIS TO WORK !!!
-    attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
 	// attempt to initialize device
 	while(TouchDriver.begin() != CommStatus::Success)
 	{
 		Serial.println("Unable to contact sensor. Waiting 2 seconds.");
 		delay(2000);
 	}
-
-	/* TODO: Touch sensor code
-	// start the SPI library
-	SPI.begin();
-	pinMode(chip_select_pin, OUTPUT);
-	pinMode(arduino_select_pin, OUTPUT);
-	//  pinMode(11, OUTPUT); These shouldn't be necessary
-	//  pinMode(12, INPUT);
-
-	// nCHANGE pin interrupt
-	pinMode(NCHANGE_PIN, INPUT);
-	attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
-	pinMode(nDRDY_pin, INPUT);
-	// attempt to initialize device
-	while(!AT42QT1245_init())
-	{
-		Serial.println("Unable to contact sensor. Waiting 2 seconds.");
-		delay(2000);
-	}
-
-	// reduce sensitivity for all Y0 keys
-	int keyStart = 0;
-	int nKeys = 8;
-	//  reduceSensitivity(keyStart, nKeys);
-	keySetups_t* pSetups = new keySetups_t[nKeys];
-	getKeySetups(pSetups, keyStart, nKeys);
-	for(int i = 0; i < nKeys; i++) {
-		Serial.print("For key "); Serial.print(i);
-		Serial.print(", BL = "); Serial.print((pSetups+i)->byte0.BL);
-		Serial.print("  NDRIFT = "); Serial.print((pSetups+i)->byte0.NDRIFT);
-		Serial.print("  NTHR = "); Serial.print((pSetups+i)->byte0.NTHR);
-		Serial.print("  | WAKE = "); Serial.print((pSetups+i)->byte1.WAKE);
-		Serial.print("  AKS = "); Serial.print((pSetups+i)->byte1.AKS);
-		Serial.print("  FDIL = "); Serial.print((pSetups+i)->byte1.FDIL);
-		Serial.print("  NDIL = "); Serial.println((pSetups+i)->byte1.NDIL);
-	}
-
-	for (int i = 0; i < nKeys; i++)
-	{
-	(pSetups+i)->byte0.BL = 1;
-	(pSetups+i)->byte0.NDRIFT = 3;
-	(pSetups+i)->byte0.NTHR = 3;
-	(pSetups+i)->byte1.WAKE = 1;
-	(pSetups+i)->byte1.AKS = 0; // helps for the button, but definitely messes up the sliders
-	(pSetups+i)->byte1.FDIL = 3;
-	(pSetups+i)->byte1.NDIL = 2;
-	}
-	setKeySetups(pSetups, keyStart, nKeys);
-	setKeySetups(pSetups, 23, 0); // button Y2X7
-
-	getKeySetups(pSetups, keyStart, nKeys);
-	for(int i = 0; i < nKeys; i++) {
-		Serial.print("For key "); Serial.print(i);
-		Serial.print(", BL = "); Serial.print((pSetups+i)->byte0.BL);
-		Serial.print("  NDRIFT = "); Serial.print((pSetups+i)->byte0.NDRIFT);
-		Serial.print("  NTHR = "); Serial.print((pSetups+i)->byte0.NTHR);
-		Serial.print("  | WAKE = "); Serial.print((pSetups+i)->byte1.WAKE);
-		Serial.print("  AKS = "); Serial.print((pSetups+i)->byte1.AKS);
-		Serial.print("  FDIL = "); Serial.print((pSetups+i)->byte1.FDIL);
-		Serial.print("  NDIL = "); Serial.println((pSetups+i)->byte1.NDIL);
-	}
-
-	KeyStatus_t keyStatus = {0};
-	pKeyStatus_t pKeyStatusUnion;
-	pKeyStatusUnion.pKeyStatus = &keyStatus;
-	getKeyStatus(pKeyStatusUnion);
-	*/ // end touch sensor code
-
+	pinMode(NCHANGE_PIN, INPUT); // TODO: !!! MUST ATTACH INTERRUPT FOR THIS TO WORK !!!
+    attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
 
 	Serial.println("Setup complete.");
 	DisplayDriver.circleOff();
 
-	SeqDriver.begin(); // Turn on interrupts last
+
+	SeqDriver.begin();
+
+	// Turn on interrupts last
 }
 
 // The loop function is called in an endless loop
 void loop()
 {
-//Add your repeated code here
+	//Add your repeated code here
+	Bitfield<QT1245_DETECT_BYTES> newPressedKeys;
 
-	// TODO Touch sensor code
-	//  const int poll_time = 2000; // ms
-	//  static unsigned long int last_poll = 0;
-	//  unsigned long int this_poll = millis();
-	  // store current data
-	  KeyStatus_t keyStatus = {0};
-	  pKeyStatus_t pKeyStatusUnion;
-	  pKeyStatusUnion.pKeyStatus = &keyStatus;
-
-	  // store last data
-	//  KeyStatus_t lastKeyStatus = {0};
-	//  pKeyStatus_t pLastKeyStatusUnion;
-	//  pLastKeyStatusUnion.pKeyStatus = &lastKeyStatus;
-
+	Serial.flush();
 	  // transfer data from device
-	  if(new_touch)
-	  {
-	    new_touch = false;
-	    Serial.print("New touch detected: "); Serial.flush();
-
-	    TouchDriver.getKeyStatus(pKeyStatusUnion);
-	//    printKeyStatusChange(pLastKeyStatusUnion, pKeyStatusUnion);
-	    //TouchDriver.printPressedKeys(pKeyStatusUnion.pKeyStatusUint8_t);
-	    Serial.println(); Serial.flush();
-	    attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
-	  }
-	//  if (this_poll - last_poll > poll_time)
-	//  {
-	//    Serial.print("Polling...");
-	//    getKeyStatus(pKeyStatusUnion);
-	//    printKeyStatusChange(pLastKeyStatusUnion, pKeyStatusUnion);
-	//    Serial.println();
-	//    last_poll = this_poll;
-	//  }
-
+	if(new_touch)
+	{
+		// TODO troubleshoot this, looks like printKeys causes a hangup (don't comment out updatePressedKeys!)
+		// it looks like way too many things get printed
+		new_touch = false;
+		Serial.print("New touch detected: "); Serial.flush();
+		TouchDriver.updatePressedKeys(); // TODO this line is the issue! Gets stuck somewhere
+		// Potentially issue with my fancy bitfield type
+		newPressedKeys = TouchDriver.getNewPressedKeys();
+		TouchDriver.printKeys(newPressedKeys);
+		Serial.println(); Serial.flush();
+		attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
+	}
 
 	/** Sequencer interrupts */
 	if (SeqDriver.getStepFlag()){

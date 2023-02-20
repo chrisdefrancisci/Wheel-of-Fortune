@@ -45,7 +45,10 @@ void SequencerDriver::begin(void){
 }
 
 /**
- *
+ * Code to execute in ISR.
+ * TODO should probably run ISR at much faster rate and check for BPM
+ * within ISR
+ * TODO is next index needed?
  */
 void SequencerDriver::step(void){
 	_step_flag = true;
@@ -61,7 +64,7 @@ SequencerDriver* SequencerDriver::instances[N_SEQUENCERS] = {};
 uint8_t SequencerDriver::_sequencer_count = 0;
 
 /**
- *
+ * Array containing handler functions for calling within interrupts.
  */
 void (*const SequencerDriver::HANDLERS[N_SEQUENCERS])(void) =
 {
@@ -72,7 +75,7 @@ void (*const SequencerDriver::HANDLERS[N_SEQUENCERS])(void) =
 };
 
 /**
- *
+ * Timer 1 interrupt service routine, which calls the handler for all sequencers.
  */
 ISR(TIMER1_COMPA_vect) {
 	for(uint8_t i=0; i < SequencerDriver::getSequencerCount(); i++) {

@@ -32,7 +32,7 @@ CommStatus AD5695::begin() {
 
 CommStatus AD5695::writeVout(DacAddr dac_addr, uint16_t dac_data) {
 	CommStatus status =  CommStatus::Success;
-	uint8_t safe_addr = dac_addr & 0x0F; // Make sure MSBs are 0
+	uint8_t safe_addr = static_cast<uint8_t>(dac_addr) & 0x0F; // Make sure MSBs are 0
 	dac_data <<= 2; // Put the 14 valid bits in the MSBs TODO make extensible to all DACs in series
 	Wire.beginTransmission(_device_address); // Device address
 	Wire.write(WRITE_UPDATE | safe_addr); // Command (bytes 7:4) | DAC address (bytes 3:0)
@@ -44,12 +44,11 @@ CommStatus AD5695::writeVout(DacAddr dac_addr, uint16_t dac_data) {
 
 //TODO:Utilize ~LDAC register to create update, write+update functions
 
-
 CommStatus AD5695::readVout(DacAddr dac_addr, uint16_t& dac_data) {
 	CommStatus status =  CommStatus::Success;
 	uint16_t data;
 	// TODO: safe address should only be 1,2,4,8 - not some combination thereof
-	uint8_t safe_addr = dac_addr & 0x0F; // Make sure MSBs are 0
+	uint8_t safe_addr = static_cast<uint8_t>(dac_addr) & 0x0F; // Make sure MSBs are 0
 	dac_data = 0; // Clear
 	Wire.beginTransmission(_device_address); // Device address
 	Wire.write(NOP | safe_addr); // Command (bytes 7:4) | DAC address (bytes 3:0)
@@ -60,4 +59,17 @@ CommStatus AD5695::readVout(DacAddr dac_addr, uint16_t& dac_data) {
 	data = Wire.read();
 	dac_data |= data;
 	return status;
+}
+
+DacAddr operator|= (const DacAddr& a, const DacAddr& b) {
+	return static_cast<DacAddr>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+DacAddr operator| (const DacAddr& a, const DacAddr& b) {
+	return static_cast<DacAddr>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+DacAddr operator+= (const DacAddr& a, const DacAddr& b) {
+	return static_cast<DacAddr>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+DacAddr operator+ (const DacAddr& a, const DacAddr& b) {
+	return static_cast<DacAddr>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
 }

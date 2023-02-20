@@ -71,10 +71,8 @@ CommStatus AT42_QT1245_Touch_driver::begin(void)
   }
 
   // Clear nCHANGE by reading from register 6 (but 7, 8, should also be read)
-  KeyStatus_t dummy = { 0 };
-  pKeyStatus_t pDummy;
-  pDummy.pKeyStatus = &dummy;
-  getKeyStatus(pDummy);
+  Bitfield<QT1245_DETECT_BYTES> dummy;
+  getKeyStatus(dummy);
 
   Serial.println("ATQT1245 Initialized.");
   Serial.flush();
@@ -250,15 +248,15 @@ CommStatus AT42_QT1245_Touch_driver::readData(uint8_t address, uint8_t nuint8_ts
  * @param nKeys[in] Number of key setups to place in the buffer.
  * @return Communication status.
  */
-CommStatus AT42_QT1245_Touch_driver::getKeySetups(keySetups_t* setups, int keyStart, int nKeys) {
+CommStatus AT42_QT1245_Touch_driver::getKeySetups(keySetups_t& setups, int keyStart, int nKeys) {
 	CommStatus success = CommStatus::Success;
 	for (int i = 0; i < nKeys; i++){
 		success |= readData(QT1245_SETUPS0_ADDR + keyStart + i, 1,
-			&(setups->uint8_t0.data));
+			&(setups.uint8_t0.data));
 	}
 	for (int i = 0; i < nKeys; i++){
 		success |= readData(QT1245_SETUPS1_ADDR + keyStart + i, 1,
-			&(setups->uint8_t1.data));
+			&(setups.uint8_t1.data));
 	}
 	return success;
 }
@@ -270,7 +268,7 @@ CommStatus AT42_QT1245_Touch_driver::getKeySetups(keySetups_t* setups, int keySt
  * @param nKeys[in] Number of keys to set.
  * @return Communication status.
  */
-CommStatus AT42_QT1245_Touch_driver::setKeySetups(keySetups_t* setups, int keyStart, int nKeys) {
+CommStatus AT42_QT1245_Touch_driver::setKeySetups(keySetups_t setups, int keyStart, int nKeys) {
 	CommStatus success = CommStatus::Success;
 	// setups must be write-enabled by writing 0xFE to the Command Address immediately before writing the
 	// setups themselves. Command address is conveniently before setups address.
@@ -279,11 +277,11 @@ CommStatus AT42_QT1245_Touch_driver::setKeySetups(keySetups_t* setups, int keySt
 
 	for (int i = 0; i < nKeys; i++){
 		success |= writeData(QT1245_SETUPS0_ADDR + keyStart + i,
-			(uint8_t)(setups->uint8_t0.data));
+			(uint8_t)(setups.uint8_t0.data));
 	}
 	for (int i = 0; i < nKeys; i++){
 		success |= writeData(QT1245_SETUPS1_ADDR + keyStart + i,
-			(uint8_t)(setups->uint8_t1.data));
+			(uint8_t)(setups.uint8_t1.data));
 	}
 
 	// device should be restarted - includes auto calibration
@@ -306,11 +304,12 @@ CommStatus AT42_QT1245_Touch_driver::setKeySetups(keySetups_t* setups, int keySt
  * @param pKeyStatus Buffer to place the key data.
  * @return Communication status.
  */
-CommStatus AT42_QT1245_Touch_driver::getKeyStatus(pKeyStatus_t pKeyStatus)
+CommStatus AT42_QT1245_Touch_driver::getKeyStatus(Bitfield<QT1245_DETECT_BYTES>& keyStatus)
 {
-  const int keyStatusSize = 3;
-  const int keyStatusAddr = 0x06;
-  return readData(keyStatusAddr, keyStatusSize, pKeyStatus.pKeyStatusUint8_t);
+  uint8_t buffer[QT1245_DETECT_BYTES] = { 0 };
+  CommStatus success = readData(QT1245_DETECT_0_7_ADDR, QT1245_DETECT_BYTES, buffer);
+  keyStatus = buffer;
+  return success;
 }
 
 

@@ -26,6 +26,7 @@
 #include "Arduino.h"
 #include "SPI.h"
 #include "CommStatus.h"
+#include "Bitfield.h"
 
 //#define DEVELOPMENT_BOARD
 #define SEQUENCER_BOARD
@@ -78,47 +79,17 @@ const uint8_t FORCE_RESET = 0x18; // performs reset. after any reset, device aut
 // calibration of all keys
 const uint8_t CALIBRATE_KEY = 0x00; // 0..23 requests calibration of that key
 
+/** Number of bytes in the setup message data */
+const uint8_t QT1245_SETUP_BYTES = 2;
+/** Number of bytes used in a detect keys bitfield */
+const uint8_t QT1245_DETECT_BYTES = 3;
+/** Number of keys, corresponding to one bit each in a bitfield. */
+const uint8_t QT1245_N_KEYS = 24;
+
 /** Class variables */
 constexpr uint8_t N_TOUCH_DRIVERS = 1;
 
 // data structures
-// TODO: in future systems rename keys to reflect functionality; move to wrapper class.
-typedef struct {
-  uint8_t key_x0y0 : 1;
-  uint8_t key_x1y0 : 1;
-  uint8_t key_x2y0 : 1;
-  uint8_t key_x3y0 : 1;
-  uint8_t key_x4y0 : 1;
-  uint8_t key_x5y0 : 1;
-  uint8_t key_x6y0 : 1;
-  uint8_t key_x7y0 : 1;
-  
-  uint8_t key_x0y1 : 1;
-  uint8_t key_x1y1 : 1;
-  uint8_t key_x2y1 : 1;
-  uint8_t key_x3y1 : 1;
-  uint8_t key_x4y1 : 1;
-  uint8_t key_x5y1 : 1;
-  uint8_t key_x6y1 : 1;
-  uint8_t key_x7y1 : 1;
-  
-  uint8_t key_x0y2 : 1;
-  uint8_t key_x1y2 : 1;
-  uint8_t key_x2y2 : 1;
-  uint8_t key_x3y2 : 1;
-  uint8_t key_x4y2 : 1;
-  uint8_t key_x5y2 : 1;
-  uint8_t key_x6y2 : 1;
-  uint8_t key_x7y2 : 1;
-} KeyStatus_t;
-
-// TODO this is dumb and annoying and hard to use. make it better.
-typedef union
-{
-  KeyStatus_t * pKeyStatus;
-  uint8_t * pKeyStatusUint8_t;
-} pKeyStatus_t;
-
 typedef union { 
     struct {
         // ? something like LSB order? 
@@ -145,7 +116,6 @@ typedef struct {
     keySetupsLow_t uint8_t0;
 } keySetups_t;
 
-
 class AT42_QT1245_Touch_driver {
 public:
 	AT42_QT1245_Touch_driver(uint8_t chip_select_pin, uint8_t nCHANGE_pin, uint8_t nDRDY_pin, uint8_t this_chip_select_pin);
@@ -154,9 +124,9 @@ public:
 	CommStatus writeData(uint8_t address, uint8_t data);
 	CommStatus writeData(uint8_t address, uint8_t nuint8_ts, uint8_t* pData);
 	CommStatus readData(uint8_t address, uint8_t nuint8_ts, uint8_t* pData);
-	CommStatus getKeySetups(keySetups_t* setups, int keyStart, int nKeys);
-	CommStatus setKeySetups(keySetups_t* setups, int keyStart, int nKeys);
-	CommStatus getKeyStatus(pKeyStatus_t pKeyStatus);
+	CommStatus getKeySetups(keySetups_t &setups, int keyStart, int nKeys);
+	CommStatus setKeySetups(keySetups_t setups, int keyStart, int nKeys);
+	CommStatus getKeyStatus(Bitfield<3>& keyStatus);
 	bool getNewTouch(void);
 private:
 	// Management of AT42_QT1245_Touch_driver across all instances

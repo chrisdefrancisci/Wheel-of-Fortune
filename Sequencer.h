@@ -4,19 +4,19 @@
 // - extern variable definitions
 // In the appropriate section
 
-#ifndef _Sequencer_H_
-#define _Sequencer_H_
+#ifndef SEQUENCER_H_
+#define SEQUENCER_H_
 
 //add your includes for the project Sequencer here
 
 // My header files
 #include "CommStatus.h"
-#include "IS31FL3246_LED_driver.h"
 #include "SequencerDriver.h"
 #include "AD5695.h"
 #include "Display.h"
 #include "Arduino.h"
-#include "AT42_QT1245_Touch_driver.h"
+//#include "AT42_QT1245_Touch_driver.h"
+#include "CapacitiveButtons.h"
 #include "SPI.h"
 
 
@@ -44,4 +44,4 @@ void nCHANGE_ISR()
 }
 
 //Do not add code below this line
-#endif /* _Sequencer_H_ */
+#endif /* SEQUENCER_H_ */
