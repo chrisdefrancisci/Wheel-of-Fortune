@@ -1,5 +1,8 @@
 #include "AT42_QT1245_Touch_driver.h"
 
+
+/* Public Methods */
+
 /**
  * Constructor. Adds static reference to this object.
  * @param chip_select_pin Chip Select pin for Peripheral device.
@@ -81,42 +84,6 @@ CommStatus AT42_QT1245_Touch_driver::begin(void)
 }
 
 /**
- * Exchanges one byte via SPI with nDRDY checking.
- * @param[in] dataIn Data to transfer to Peripheral from Controller.
- * @param[out] pDataOut Data to sent from Peripheral to Controller.
- * @return Communication status.
- */
-CommStatus AT42_QT1245_Touch_driver::AT42QT1245transfer(uint8_t dataIn, uint8_t* pDataOut) {
-  const int max_attempts = 450; // reads are guaranteed in <1ms, writes <4.5ms
-  int attempts = 0;
-  digitalWrite(chip_select_pin, LOW);
-  while(digitalRead(nDRDY_pin) == LOW)
-  {
-    attempts++;
-    if (attempts > max_attempts)
-    {
-      return CommStatus::OtherError;
-    }
-    delayMicroseconds(10);
-  }
-  // take the chip select low to select the device:
-  *pDataOut = SPI.transfer(dataIn); // Send data uint8_t
-  digitalWrite(chip_select_pin, HIGH);
-  delayMicroseconds(40); // delay between each transfer as specified on pg 23 of datasheet
-  return CommStatus::Success;
-}
-
-/**
- * Wrapper function if Peripheral data is not expected.
- * @param[in] dataIn
- * @return Communication status.
- */
-CommStatus AT42_QT1245_Touch_driver::AT42QT1245transfer(uint8_t dataIn) {
-  uint8_t throwaway = 0x00;
-  return AT42QT1245transfer(dataIn, &throwaway);
-}
-
-/**
  * @brief Writes a buffer of data to a specified address of the Peripheral.
  * The host initiates a write sequence by sending the internal memory address it wishes
  * to write followed by n, the number of QT1245 addresses it wishes to write to. The
@@ -128,8 +95,8 @@ CommStatus AT42_QT1245_Touch_driver::AT42QT1245transfer(uint8_t dataIn) {
  */
 CommStatus AT42_QT1245_Touch_driver::writeData(uint8_t address, uint8_t nuint8_ts, uint8_t* pData) {
   CommStatus success = CommStatus::Success; // error return value, 0=failure, 1 = success
-  Serial.print("Writing "); Serial.print(nuint8_ts); Serial.print(" to register ");
-  Serial.println(address);
+  //Serial.print("Writing "); Serial.print(nuint8_ts); Serial.print(" to register ");
+  //Serial.println(address);
 
   if(nuint8_ts > 111)
   {
@@ -190,8 +157,8 @@ CommStatus AT42_QT1245_Touch_driver::readData(uint8_t address, uint8_t nuint8_ts
   uint8_t nuint8_ts_copy = nuint8_ts;
   uint8_t *pData_copy = pData;
   CommStatus success = CommStatus::Success; // error return value, 0=failure, 1 = success
-  Serial.print("Reading "); Serial.print(nuint8_ts); Serial.print(" uint8_t(s) from register 0x0");
-  Serial.print(address, HEX); Serial.print(":\t"); Serial.flush();
+  //Serial.print("Reading "); Serial.print(nuint8_ts); Serial.print(" uint8_t(s) from register 0x0");
+  //Serial.print(address, HEX); Serial.print(":\t"); Serial.flush();
   
   // take the chip select low to select the device:
   SPI.beginTransaction(mySPISettings);
@@ -222,16 +189,16 @@ CommStatus AT42_QT1245_Touch_driver::readData(uint8_t address, uint8_t nuint8_ts
   {
     while(nuint8_ts_copy > 0)
     {
-      Serial.print("0x"); Serial.print(*pData_copy, HEX); Serial.print("\t"); Serial.flush();
+      //Serial.print("0x"); Serial.print(*pData_copy, HEX); Serial.print("\t"); Serial.flush();
       pData_copy++;
       nuint8_ts_copy--;
     }
   }
   else
   {
-    Serial.print("fail");
+//    Serial.print("failed to read");
   }
-  Serial.println();
+  //Serial.println();
   // todo: check the CRC
   // Serial.print("CRC = ");
   // Serial.println((CRC_MSB<<8) | CRC_LSB, HEX);
@@ -243,29 +210,30 @@ CommStatus AT42_QT1245_Touch_driver::readData(uint8_t address, uint8_t nuint8_ts
 
 /**
  * Get the setup information for keys/buttons.
- * @param setups[out] Buffer to place the key setups.
- * @param keyStart[in] First key to examine.
- * @param nKeys[in] Number of key setups to place in the buffer.
+ * @param[out] setups Buffer to place the key setups.
+ * @param[in] keyStart First key to examine.
+ * @param[in] nKeys Number of key setups to place in the buffer.
  * @return Communication status.
  */
-CommStatus AT42_QT1245_Touch_driver::getKeySetups(keySetups_t& setups, int keyStart, int nKeys) {
+CommStatus AT42_QT1245_Touch_driver::getKeySetups(keySetups_t* setups, int keyStart, int nKeys) {
 	CommStatus success = CommStatus::Success;
 	for (int i = 0; i < nKeys; i++){
 		success |= readData(QT1245_SETUPS0_ADDR + keyStart + i, 1,
-			&(setups.uint8_t0.data));
+			&(setups+i)->uint8_t0.data);
 	}
 	for (int i = 0; i < nKeys; i++){
 		success |= readData(QT1245_SETUPS1_ADDR + keyStart + i, 1,
-			&(setups.uint8_t1.data));
+			&(setups + i)->uint8_t1.data);
 	}
 	return success;
 }
 
 /**
  * Set the setup information for keys/buttons.
- * @param setups[in] Buffer containing key setups.
- * @param keyStart[in] First key to set.
- * @param nKeys[in] Number of keys to set.
+ * @remarks The restart function must be called after changing settings.
+ * @param[in] setups Buffer containing key setups.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
  * @return Communication status.
  */
 CommStatus AT42_QT1245_Touch_driver::setKeySetups(keySetups_t setups, int keyStart, int nKeys) {
@@ -284,16 +252,144 @@ CommStatus AT42_QT1245_Touch_driver::setKeySetups(keySetups_t setups, int keySta
 			(uint8_t)(setups.uint8_t1.data));
 	}
 
-	// device should be restarted - includes auto calibration
-	Serial.println("Restarting...");
-	writeData(QT1245_COMMAND_ADDR, FORCE_RESET);
-	delay(3000);
+	return success;
+}
 
-	// attempt to initialize device
-	while(begin() != CommStatus::Success)
-	{
-	Serial.println("Unable to contact sensor. Waiting 2 seconds.");
-	delay(2000);
+/**
+ * Set the Burst Length while maintaining other settings.
+ * @remarks The restart function must be called after changing settings.
+ * @param[in] BL Burst Length.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::setKeySetupsBL(uint8_t BL, int keyStart, int nKeys) {
+	CommStatus success = CommStatus::Success;
+	keySetups_t setups;
+	for (uint8_t i = 0; i < nKeys; i++) {
+		success |= getKeySetups(&setups, keyStart + i, 1);
+		setups.uint8_t0.bitfield.BL = BL;
+		success |= setKeySetups(setups, keyStart + i, 1);
+	}
+
+	return success;
+}
+
+/**
+ * Set the Drift Compensation while maintaining other settings.
+ * @remarks The restart function must be called after changing settings.
+ * @param[in] NDRIFT Drift Compensation.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::setKeySetupsNDRIFT(uint8_t NDRIFT, int keyStart, int nKeys) {
+	CommStatus success = CommStatus::Success;
+	keySetups_t setups;
+	for (uint8_t i = 0; i < nKeys; i++) {
+		success |= getKeySetups(&setups, keyStart + i, 1);
+		setups.uint8_t0.bitfield.NDRIFT = NDRIFT;
+		success |= setKeySetups(setups, keyStart + i, 1);
+	}
+
+	return success;
+}
+
+/**
+ * Set the Negative Hysteresis Threshold while maintaining other settings.
+ * @remarks The restart function must be called after changing settings.
+ * @param[in] NTHR Negative Threshold.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::setKeySetupsNTHR(uint8_t NTHR, int keyStart, int nKeys) {
+	CommStatus success = CommStatus::Success;
+	keySetups_t setups;
+	for (uint8_t i = 0; i < nKeys; i++) {
+		success |= getKeySetups(&setups, keyStart + i, 1);
+		setups.uint8_t0.bitfield.NTHR = NTHR;
+		success |= setKeySetups(setups, keyStart + i, 1);
+	}
+
+	return success;
+}
+
+/**
+ * Set the Normal Detection Integrator Limit while maintaining other settings.
+ * @remarks The restart function must be called after changing settings.
+ * @param[in] NDIL Normal Detection Integrator Limit.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::setKeySetupsNDIL(uint8_t NDIL, int keyStart, int nKeys) {
+	CommStatus success = CommStatus::Success;
+	keySetups_t setups;
+	for (uint8_t i = 0; i < nKeys; i++) {
+		success |= getKeySetups(&setups, keyStart + i, 1);
+		setups.uint8_t1.bitfield.NDIL = NDIL;
+		success |= setKeySetups(setups, keyStart + i, 1);
+	}
+
+	return success;
+}
+
+/**
+ * Set the Fast Detection Integrator Limit while maintaining other settings.
+ * @remarks The restart function must be called after changing settings.
+ * @param[in] FDIL Normal Detection Integrator Limit.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::setKeySetupsFDIL(uint8_t FDIL, int keyStart, int nKeys) {
+	CommStatus success = CommStatus::Success;
+	keySetups_t setups;
+	for (uint8_t i = 0; i < nKeys; i++) {
+		success |= getKeySetups(&setups, keyStart + i, 1);
+		setups.uint8_t1.bitfield.FDIL = FDIL;
+		success |= setKeySetups(setups, keyStart + i, 1);
+	}
+
+	return success;
+}
+
+/**
+ * Set the Automatic Key Suppression while maintaining other settings.
+ * @remarks The restart function must be called after changing settings.
+ * @param[in] AKS Automatic Key Suppression, 0 for disabled, 1 for enabled.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::setKeySetupsAKS(uint8_t AKS, int keyStart, int nKeys) {
+	CommStatus success = CommStatus::Success;
+	keySetups_t setups;
+	for (uint8_t i = 0; i < nKeys; i++) {
+		success |= getKeySetups(&setups, keyStart + i, 1);
+		setups.uint8_t1.bitfield.AKS = AKS;
+		success |= setKeySetups(setups, keyStart + i, 1);
+	}
+
+	return success;
+}
+
+/**
+ * Set the Wake from sleep while maintaining other settings.
+ * @remarks The restart function must be called after changing settings.
+ * @param[in] WAKE Wake from sleep, 0 for disabled, 1 for enabled.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::setKeySetupsWAKE(uint8_t WAKE, int keyStart, int nKeys) {
+	CommStatus success = CommStatus::Success;
+	keySetups_t setups;
+	for (uint8_t i = 0; i < nKeys; i++) {
+		success |= getKeySetups(&setups, keyStart + i, 1);
+		setups.uint8_t1.bitfield.WAKE = WAKE;
+		success |= setKeySetups(setups, keyStart + i, 1);
 	}
 
 	return success;
@@ -312,7 +408,71 @@ CommStatus AT42_QT1245_Touch_driver::getKeyStatus(Bitfield<QT1245_DETECT_BYTES>&
   return success;
 }
 
+/**
+ * Set the setup information for keys/buttons *without* restarting.
+ * @param[in] setups Buffer containing key setups.
+ * @param[in] keyStart First key to set.
+ * @param[in] nKeys Number of keys to set.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::restart(void) {
+	CommStatus success = CommStatus::Success;
 
-/** Definitions and initializers for static members */
+	// device should be restarted - includes auto calibration
+	Serial.println("Restarting...");
+	writeData(QT1245_COMMAND_ADDR, FORCE_RESET);
+	delay(3000);
+
+	// attempt to initialize device
+	while(begin() != CommStatus::Success)
+	{
+		Serial.println("Unable to contact sensor. Waiting 2 seconds.");
+		delay(2000);
+	}
+
+	return success;
+}
+
+/* Private Methods */
+
+/**
+ * Exchanges one byte via SPI with nDRDY checking.
+ * @param[in] dataIn Data to transfer to Peripheral from Controller.
+ * @param[out] pDataOut Data to sent from Peripheral to Controller.
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::AT42QT1245transfer(uint8_t dataIn, uint8_t* pDataOut) {
+  const int max_attempts = 450; // reads are guaranteed in <1ms, writes <4.5ms
+  int attempts = 0;
+  digitalWrite(chip_select_pin, LOW);
+  while(digitalRead(nDRDY_pin) == LOW)
+  {
+    attempts++;
+    if (attempts > max_attempts)
+    {
+      return CommStatus::OtherError;
+    }
+    delayMicroseconds(10);
+  }
+  // take the chip select low to select the device:
+  *pDataOut = SPI.transfer(dataIn); // Send data uint8_t
+  digitalWrite(chip_select_pin, HIGH);
+  delayMicroseconds(40); // delay between each transfer as specified on pg 23 of datasheet
+  return CommStatus::Success;
+}
+
+/**
+ * Wrapper function if Peripheral data is not expected.
+ * @param[in] dataIn
+ * @return Communication status.
+ */
+CommStatus AT42_QT1245_Touch_driver::AT42QT1245transfer(uint8_t dataIn) {
+  uint8_t throwaway = 0x00;
+  return AT42QT1245transfer(dataIn, &throwaway);
+}
+
+
+/* Definitions and initializers for static members */
+
 AT42_QT1245_Touch_driver* AT42_QT1245_Touch_driver::instances[N_TOUCH_DRIVERS] = {};
 uint8_t AT42_QT1245_Touch_driver::driver_count = 0;

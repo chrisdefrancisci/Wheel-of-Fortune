@@ -51,12 +51,9 @@ void setup()
 
 	}
 
-	// attempt to initialize device
-	while(TouchDriver.begin() != CommStatus::Success)
-	{
-		Serial.println("Unable to contact sensor. Waiting 2 seconds.");
-		delay(2000);
-	}
+	// Initialize device, set EEPROM if needed
+	TouchDriver.begin();
+
 	pinMode(NCHANGE_PIN, INPUT); // TODO: !!! MUST ATTACH INTERRUPT FOR THIS TO WORK !!!
     attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
 

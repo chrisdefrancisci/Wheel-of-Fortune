@@ -64,6 +64,10 @@ const uint8_t QT1245_SETUPS1_ADDR = 165; // Addresses 165 - 188 provide read/wri
     // with 165 - 188 being WAKE, AKS, FDIL, NDIL for each key
 const uint8_t QT1245_DWELL_RIB_THRM_FHM_ADDR = 244; // Changes for dwell, restart interrupted burst,
     // threshold multiplier (to NTHR and PTHR), and frequency hopping mode
+const uint8_t QT1245_FHM_BIT = 6; // FHM is at bits 6:7 at address 244
+const uint8_t QT1245_THRM_BIT = 4; // THRM is at bits 4:5 of address 244
+const uint8_t QT1245_RIB_BIT = 3; // RIB is at bit 3 of address 244
+const uint8_t QT1245_DWELL_BIT = 0; // DWELL is at bits 0:2 of address 244
 
 // SPI commands
 const uint8_t WRITE = 0b01111111;   //  write command
@@ -89,7 +93,7 @@ const uint8_t QT1245_N_KEYS = 24;
 /** Class variables */
 constexpr uint8_t N_TOUCH_DRIVERS = 1;
 
-// data structures
+// data structures - could also convert these to use Bitfield type
 typedef union { 
     struct {
         // ? something like LSB order? 
@@ -97,7 +101,7 @@ typedef union {
         uint8_t FDIL : 3;
         uint8_t AKS : 1;
         uint8_t WAKE : 1;
-    };
+    } bitfield;
     uint8_t data;
 } keySetupsHigh_t;
 
@@ -107,14 +111,32 @@ typedef union {
         uint8_t NTHR : 3;
         uint8_t NDRIFT : 3;
         uint8_t BL : 2;
-    };
+    } bitfield;
     uint8_t data;
 } keySetupsLow_t;
 
 typedef struct {
-    keySetupsHigh_t uint8_t1;
     keySetupsLow_t uint8_t0;
+    keySetupsHigh_t uint8_t1;
 } keySetups_t;
+
+const keySetups_t factory_default_setups = {
+		.uint8_t0 = {
+				.bitfield = {
+						.NTHR = 3,
+						.NDRIFT = 4,
+						.BL = 3
+				}
+		},
+		.uint8_t1 = {
+				.bitfield = {
+						.NDIL = 2,
+						.FDIL = 3,
+						.AKS = 0,
+						.WAKE = 1
+				}
+		}
+};
 
 class AT42_QT1245_Touch_driver {
 public:
@@ -124,9 +146,17 @@ public:
 	CommStatus writeData(uint8_t address, uint8_t data);
 	CommStatus writeData(uint8_t address, uint8_t nuint8_ts, uint8_t* pData);
 	CommStatus readData(uint8_t address, uint8_t nuint8_ts, uint8_t* pData);
-	CommStatus getKeySetups(keySetups_t &setups, int keyStart, int nKeys);
+	CommStatus getKeySetups(keySetups_t* setups, int keyStart, int nKeys);
 	CommStatus setKeySetups(keySetups_t setups, int keyStart, int nKeys);
+	CommStatus setKeySetupsBL(uint8_t BL, int keyStart, int nKeys);
+	CommStatus setKeySetupsNDRIFT(uint8_t NDRIFT, int keyStart, int nKeys);
+	CommStatus setKeySetupsNTHR(uint8_t NTHR, int keyStart, int nKeys);
+	CommStatus setKeySetupsNDIL(uint8_t NDIL, int keyStart, int nKeys);
+	CommStatus setKeySetupsFDIL(uint8_t FDIL, int keyStart, int nKeys);
+	CommStatus setKeySetupsAKS(uint8_t AKS, int keyStart, int nKeys);
+	CommStatus setKeySetupsWAKE(uint8_t WAKE, int keyStart, int nKeys);
 	CommStatus getKeyStatus(Bitfield<3>& keyStatus);
+	CommStatus restart(void);
 	bool getNewTouch(void);
 private:
 	// Management of AT42_QT1245_Touch_driver across all instances
@@ -141,6 +171,7 @@ private:
 	// Methods
 	CommStatus AT42QT1245transfer(uint8_t dataIn, uint8_t* pDataOut);
 	CommStatus AT42QT1245transfer(uint8_t dataIn);
+
 	inline void setNewTouch(void) {
 		new_touch = true;
 		detachInterrupt(digitalPinToInterrupt(nCHANGE_pin)); // TODO: is this needed?

@@ -25,8 +25,8 @@ typedef enum IOMap_def : uint8_t{
 	BUTTON_STEP_10,
 	BUTTON_STEP_11,
 	BUTTON_OUT_1,
+	BUTTON_OUT_3, // Yes, this is the order, whoops.
 	BUTTON_OUT_2,
-	BUTTON_OUT_3,
 	BUTTON_OUT_4,
 	BUTTON_FUNC,
 	BUTTON_OCT_UP,
@@ -62,8 +62,8 @@ const char string_9[] PROGMEM = "step09";
 const char string_10[] PROGMEM = "step10";
 const char string_11[] PROGMEM = "step11";
 const char string_12[] PROGMEM = "out1";
-const char string_13[] PROGMEM = "out2";
-const char string_14[] PROGMEM = "out3";
+const char string_13[] PROGMEM = "out3";
+const char string_14[] PROGMEM = "out2"; // Yes, this is the order, whoops.
 const char string_15[] PROGMEM = "out4";
 const char string_16[] PROGMEM = "func";
 const char string_17[] PROGMEM = "oct_up";
