@@ -12,7 +12,6 @@
 
 // Wire library constants
 // End transmission return status
-// TODO: convert to enum class with a static_cast function to uint8_t
 enum class CommStatus : uint8_t {
 	Success = 0,
 	DataLengthError = 1, // data too long to fit in buffer

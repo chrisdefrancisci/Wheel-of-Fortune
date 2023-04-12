@@ -12,9 +12,11 @@
 #include "Arduino.h"
 #include "IS31FL3246_LED_driver.h"
 #include "DAC_14_bit_notes.h"
+#include "Hardware.h"
 
 constexpr uint8_t N_SEQUENCERS = 4; // 4 sequencers, for 4 outputs
 constexpr uint8_t N_OCTAVES = 5; // 5 octave range
+constexpr uint8_t OCTAVES_2_NOTES = 11;
 
 class SequencerDriver {
 public:
@@ -28,7 +30,10 @@ public:
 	static void (*const HANDLERS[N_SEQUENCERS])();
 //	static void (*update)(); // TODO: Assign function such that all outputs update at once
 
-	/** Setters and Getters */
+	uint16_t getDacValue(uint8_t note);
+	uint16_t getDacValue(uint8_t note, uint8_t octave);
+
+	// Setters and Getters
 	inline bool getStepFlag() { return _step_flag; }
 	inline void clearStepFlag() { _step_flag = false; }
 	inline uint8_t getThisIndex(){ return _this_index; }
@@ -39,6 +44,10 @@ public:
 	inline void setValue(uint8_t index, uint8_t note){ data[index] = getDacValue(note); }
 	inline void setThisValue(uint8_t note){ data[_this_index] = getDacValue(note); }
 	inline uint16_t getThisValue(){ return data[_this_index]; }
+	inline void incrementOctave(){ if(octave < N_OCTAVES - 1) octave++; }
+	inline void decrementOctave(){ if(octave > 0) octave--; }
+	uint8_t getOctave(){ return octave; }
+
 
 private:
 	// Management of SequencerDriver across all instances
@@ -47,14 +56,15 @@ private:
 	static SequencerDriver* instances[N_SEQUENCERS];
 
 	template <uint8_t SEQUENCER> static void handler() {
-		instances[SEQUENCER]->step();
+		if (instances[SEQUENCER] != NULL) { // TODO: prevent dynamic creation of SequencerDrivers so this becomes irrelevant.
+			instances[SEQUENCER]->step();
+		}
 	}
 	void step();
 	static uint8_t _sequencer_count;
 	static constexpr uint8_t _max_length = 12;
 
 	// methods
-	inline uint16_t getDacValue(uint8_t note) { return pgm_read_word_near(NOTES2DAC + note); }
 
 	// instance specific
 	// could also make this more extensible with a virtual parent class of led driver + DAC
@@ -63,6 +73,7 @@ private:
 	uint8_t _sequencer_id = 0;
 	uint8_t _bpm = 120;
 	uint16_t data[_max_length] = {0};
+	uint8_t octave = 0;
 
 	// variables used in ISR;
 	volatile bool _step_flag;

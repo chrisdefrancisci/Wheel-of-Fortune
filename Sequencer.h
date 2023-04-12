@@ -9,15 +9,18 @@
 
 //add your includes for the project Sequencer here
 
+#include "Arduino.h"
+
 // My header files
 #include "CommStatus.h"
 #include "SequencerDriver.h"
 #include "AD5695.h"
 #include "Display.h"
-#include "Arduino.h"
 //#include "AT42_QT1245_Touch_driver.h"
 #include "CapacitiveButtons.h"
 #include "SPI.h"
+#include "StateMachine.h"
+#include "AD5695.h"
 
 
 //end of add your includes here

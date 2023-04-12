@@ -8,7 +8,8 @@
 #include "SequencerDriver.h"
 
 /**
- *
+ * Constructor increments the count of existing sequencers and adds this sequencer to the array.
+ * This allows the ISR to run the handler for this sequencer.
  */
 SequencerDriver::SequencerDriver(void) {
 	// TODO: perhaps linked list of sequencers so as one is removed, it's easy to add another
@@ -19,7 +20,8 @@ SequencerDriver::SequencerDriver(void) {
 }
 
 /**
- *
+ * The destructor removes this sequencer from the list.
+ * TODO: prevent dynamic creation of SequencerDrivers so this becomes irrelevant.
  */
 SequencerDriver::~SequencerDriver(void) {
 	instances[_sequencer_id] = NULL;
@@ -58,6 +60,34 @@ void SequencerDriver::step(void){
 		_next_index = 0;
 	}
 }
+
+/**
+ * Converts note index to DAC value
+ * @param[in] note Index, from 0 to NOTES2DAC_LEN
+ * @return The value to write to the DAC, corresponding to the given note
+ */
+uint16_t SequencerDriver::getDacValue(uint8_t note) {
+	if (note >= NOTES2DAC_LEN) {
+		note = NOTES2DAC_LEN;
+	}
+	return pgm_read_word_near(NOTES2DAC + note);
+}
+
+/**
+ * Converts note index to DAC value
+ * @param[in] note Index, from 0 to NOTES2DAC_LEN - 1
+ * @param[in] octave Index, from 0 to N_OCTAVES - 1
+ * @return The value to write to the DAC, corresponding to the given note and octave.
+ */
+uint16_t SequencerDriver::getDacValue(uint8_t note, uint8_t octave) {
+	uint8_t index = note + octave * OCTAVES_2_NOTES;
+	if (index >= NOTES2DAC_LEN) {
+		index = NOTES2DAC_LEN;
+	}
+	return pgm_read_word_near(NOTES2DAC + index);
+}
+
+
 
 /** Definitions and initializers for static members */
 SequencerDriver* SequencerDriver::instances[N_SEQUENCERS] = {};

@@ -10,43 +10,48 @@
 
 #include "Arduino.h"
 
-
+/**
+ *
+ */
 typedef enum IOMap_def : uint8_t{
-	BUTTON_STEP_00,
-	BUTTON_STEP_01,
-	BUTTON_STEP_02,
-	BUTTON_STEP_03,
-	BUTTON_STEP_04,
-	BUTTON_STEP_05,
-	BUTTON_STEP_06,
-	BUTTON_STEP_07,
-	BUTTON_STEP_08,
-	BUTTON_STEP_09,
-	BUTTON_STEP_10,
-	BUTTON_STEP_11,
-	BUTTON_OUT_1,
+	BUTTON_STEP_00, /**< BUTTON_STEP_00 */
+	BUTTON_STEP_01, /**< BUTTON_STEP_01 */
+	BUTTON_STEP_02, /**< BUTTON_STEP_02 */
+	BUTTON_STEP_03, /**< BUTTON_STEP_03 */
+	BUTTON_STEP_04, /**< BUTTON_STEP_04 */
+	BUTTON_STEP_05, /**< BUTTON_STEP_05 */
+	BUTTON_STEP_06, /**< BUTTON_STEP_06 */
+	BUTTON_STEP_07, /**< BUTTON_STEP_07 */
+	BUTTON_STEP_08, /**< BUTTON_STEP_08 */
+	BUTTON_STEP_09, /**< BUTTON_STEP_09 */
+	BUTTON_STEP_10, /**< BUTTON_STEP_10 */
+	BUTTON_STEP_11, /**< BUTTON_STEP_11 */
+	BUTTON_OUT_1,   /**< BUTTON_OUT_1 */
 	BUTTON_OUT_3, // Yes, this is the order, whoops.
-	BUTTON_OUT_2,
-	BUTTON_OUT_4,
-	BUTTON_FUNC,
-	BUTTON_OCT_UP,
-	BUTTON_OCT_DOWN,
-	BUTTON_PLAY
+	BUTTON_OUT_2,   /**< BUTTON_OUT_2 */
+	BUTTON_OUT_4,   /**< BUTTON_OUT_4 */
+	BUTTON_FUNC,    /**< BUTTON_FUNC */
+	BUTTON_OCT_UP,  /**< BUTTON_OCT_UP */
+	BUTTON_OCT_DOWN,/**< BUTTON_OCT_DOWN */
+	BUTTON_PLAY     /**< BUTTON_PLAY */
 } IOMap_t;
 
+/**
+ *
+ */
 typedef enum NoteMap_def : uint8_t{
-	NOTE_i,
-	NOTE_i_s,
-	NOTE_ii,
-	NOTE_ii_s,
-	NOTE_iii,
-	NOTE_iv,
-	NOTE_iv_s,
-	NOTE_v,
-	NOTE_v_s,
-	NOTE_vi,
-	NOTE_vi_s,
-	NOTE_vii
+	NOTE_i,   /**< NOTE_i */
+	NOTE_i_s, /**< NOTE_i_s */
+	NOTE_ii,  /**< NOTE_ii */
+	NOTE_ii_s,/**< NOTE_ii_s */
+	NOTE_iii, /**< NOTE_iii */
+	NOTE_iv,  /**< NOTE_iv */
+	NOTE_iv_s,/**< NOTE_iv_s */
+	NOTE_v,   /**< NOTE_v */
+	NOTE_v_s, /**< NOTE_v_s */
+	NOTE_vi,  /**< NOTE_vi */
+	NOTE_vi_s,/**< NOTE_vi_s */
+	NOTE_vii  /**< NOTE_vii */
 } NoteMap_t;
 
 const char string_0[] PROGMEM = "step00";

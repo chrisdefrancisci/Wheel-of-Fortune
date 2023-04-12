@@ -22,7 +22,8 @@ public:
 	CommStatus begin(void);
 	Bitfield<QT1245_DETECT_BYTES> updatePressedKeys(void);
 	void printKeys(Bitfield<QT1245_DETECT_BYTES> printBuffer);
-	bool getKey(uint8_t key);
+//	bool getKey(uint8_t key);
+	uint8_t getNewNote(void);
 	inline Bitfield<QT1245_DETECT_BYTES> getAllPressedKeys(void) { return allPressedKeys; }
 	inline Bitfield<QT1245_DETECT_BYTES> getNewPressedKeys(void) { return newPressedKeys; }
 private:

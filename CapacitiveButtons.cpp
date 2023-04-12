@@ -62,8 +62,8 @@ CommStatus CapacitiveButtons::begin(void) {
 //	ADDR_244 = new_THRM & (1 << 1) ? ADDR_244 & ~(new_THRM << (QT1245_THRM_BIT + 1)) :
 //			ADDR_244 | (new_THRM << (QT1245_THRM_BIT + 1));
 //	TouchDriver.writeData(QT1245_DWELL_RIB_THRM_FHM_ADDR, ADDR_244);
-
-	TouchDriver.restart(); // Restart is required after writing to setups
+//
+//	TouchDriver.restart(); // Restart is required after writing to setups
 
 	TouchDriver.readData(QT1245_DWELL_RIB_THRM_FHM_ADDR, 1, &ADDR_244);
 	Serial.print(" -> Updated ADDR 244 = "); Serial.println(ADDR_244, BIN);
@@ -112,5 +112,18 @@ void CapacitiveButtons::printKeys(Bitfield<QT1245_DETECT_BYTES> printBuffer) {
 		}
 	}
 	Serial.println();
+}
+
+/**
+ * Check to see if any notes have been pressed, return the first found.
+ * @return Number of note if there is one, -1 for no new note.
+ */
+uint8_t CapacitiveButtons::getNewNote(void) {
+	for (uint8_t i = NOTE_i; i <= NOTE_vii; i++) {
+		if (newPressedKeys[i]) {
+			return i;
+		}
+	}
+	return -1;
 }
 

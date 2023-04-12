@@ -13,8 +13,11 @@
 #define DISPLAY_H_
 
 #include "IS31FL3246_LED_driver.h"
+#include "AT42_QT1245_Touch_driver.h" // TODO: should necessary constants from AT42..., others,
+									  // 	be moved to remove so many interdependencies?
 #include "SequencerDriver.h"
 #include "Arduino.h"
+#include "Bitfield.h"
 
 // Colors
 const rgb8_t OFF_RGB = {0, 0, 0};
@@ -38,7 +41,7 @@ const rgb8_t rgbConsts[] = {RED_RGB, ORANGE_RGB, YELLOW_RGB, LIME_RGB, GREEN_RGB
 		SEA_RGB, CYAN_RGB, INDIGO_RGB, BLUE_RGB, PURPLE_RGB, VIOLET_RGB, MAGENTA_RGB};
 const uint8_t rgbLen = 12;
 
-const rgb8_t sequncerColors[] = {BLUE_RGB, ORANGE_RGB, MAGENTA_RGB, SEA_RGB};
+const rgb8_t sequencerColors[] = { BLUE_RGB, MAGENTA_RGB, SEA_RGB, ORANGE_RGB };
 const rgb8_t controlColor = VIOLET_RGB;
 const rgb8_t errorColor = RED_RGB;
 
@@ -60,6 +63,7 @@ public:
 	void circleOff();
 	void peripheralOff();
 	void step(uint8_t sequencer_id, uint8_t this_index);
+	void displayPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys, rgb8_t color = WHITE_RGB);
 
 private:
 	IS31FL3246_LED_driver circular_led_driver; // Driver for LEDs in a circle, with address b0110 000x
