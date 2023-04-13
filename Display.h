@@ -46,6 +46,8 @@ const rgb8_t controlColor = VIOLET_RGB;
 const rgb8_t errorColor = RED_RGB;
 
 // LED Driver
+const uint8_t N_CIRCLE_LEDS = 12;
+const uint8_t N_PERIPHERAL_LEDS = 8;
 const uint8_t circular_led_driver_address = B0110000; // AD connected to GND
 const uint8_t peripheral_led_driver_address = B0110011; // AD connected to +5V
 const uint8_t sdb_pin = 9;

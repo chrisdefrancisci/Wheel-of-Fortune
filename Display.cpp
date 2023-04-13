@@ -7,8 +7,9 @@
 
 #include "Display.h"
 
-
-const uint8_t button2led[N_RGB_LEDS*2] = {0, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, // Ring indices
+/** Maps the button index reported by Capacitive Button driver to the LED to feed to LED driver. */
+const uint8_t button2led[N_CIRCLE_LEDS + N_PERIPHERAL_LEDS] =
+		{0, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, // Circle indices
 		2, 4, 3, 5, 6, 0, 7, 1}; // Peripheral indices
 
 Display::Display() :
@@ -48,8 +49,10 @@ bool Display::rainbowLoop(unsigned long display_millis){
 		for (int ledIdx = 0; ledIdx < ledLen; ledIdx++) {
 			int rgbCircIdx = ((rgbIdx + ledIdx) >= rgbLen ) ? rgbIdx + ledIdx - rgbLen : rgbIdx + ledIdx;
 			circular_led_driver.writeLed(ledIdx, rgbConsts[rgbCircIdx]);
+			peripheral_led_driver.writeLed(ledIdx, WHITE_RGB);
 		}
 		circular_led_driver.update();
+		peripheral_led_driver.update();
 		rgbIdx++;
 		if (rgbIdx >= rgbLen) {
 			rgbIdx = 0;
@@ -76,6 +79,7 @@ void Display::peripheralOff() {
 	for (uint8_t ledIdx = 0; ledIdx < ledLen; ledIdx++){
 		peripheral_led_driver.writeLed(ledIdx, OFF_RGB);
 	}
+	peripheral_led_driver.update();
 }
 
 /**
@@ -100,15 +104,15 @@ void Display::step(uint8_t sequencer_id, uint8_t this_index) {
 void Display::displayPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys, rgb8_t color) {
 	// Turn on LEDs in first driver if touched, otherwise turn them off
 	for (uint8_t i = 0; i < QT1245_DETECT_BYTES * 8; i++) {
-		Serial.print((uint8_t)pressedKeys[i]);
-		if (i%12 ==0){
+		if (i % 12 == 0){
 			Serial.print(" ");
 		}
+		Serial.print((uint8_t)pressedKeys[i]);
 	}
-	for (uint8_t i = 0; i < N_RGB_LEDS; i++) {
+	for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
 		if (pressedKeys[i]) {
 			circular_led_driver.writeLed(button2led[i], color);
-			Serial.print("\tDisplay "); Serial.print(i); Serial.print(" from "); Serial.print(button2led[i]);
+			Serial.print("\tDisplay "); Serial.print(button2led[i]); Serial.print(" from "); Serial.print(i);
 		}
 		else {
 			circular_led_driver.writeLed(button2led[i], OFF_RGB);
@@ -117,11 +121,11 @@ void Display::displayPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys, rgb8
 	Serial.println();
 	circular_led_driver.update();
 	// Turn on LEDs in second driver
-	for (uint8_t i = 0; i < N_RGB_LEDS; i++) {
-		uint8_t complete_idx = i + N_RGB_LEDS;
+	for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++) {
+		uint8_t complete_idx = i + N_CIRCLE_LEDS;
 		if (pressedKeys[complete_idx]) {
 			peripheral_led_driver.writeLed(button2led[complete_idx], color);
-			Serial.print("\tDisplay "); Serial.print(i); Serial.print(" from "); Serial.print(button2led[i]);
+			Serial.print("\tDisplay "); Serial.print(button2led[complete_idx]); Serial.print(" from "); Serial.print(complete_idx);
 		}
 		else {
 			peripheral_led_driver.writeLed(button2led[complete_idx], OFF_RGB);

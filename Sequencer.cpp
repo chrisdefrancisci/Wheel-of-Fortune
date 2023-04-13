@@ -60,6 +60,7 @@ void setup()
 
 	Serial.println("Setup complete.");
 	DisplayDriver.circleOff();
+	DisplayDriver.peripheralOff();
 
 
 	SeqDriver.begin();
