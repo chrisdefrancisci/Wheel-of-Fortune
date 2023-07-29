@@ -10,9 +10,10 @@
 #define SEQUENCERDRIVER_H_
 
 #include "Arduino.h"
+#include "Hardware.h"
+#include "AD5695.h"
 #include "IS31FL3246_LED_driver.h"
 #include "DAC_14_bit_notes.h"
-#include "Hardware.h"
 
 constexpr uint8_t N_SEQUENCERS = 4; // 4 sequencers, for 4 outputs
 constexpr uint8_t N_OCTAVES = 5; // 5 octave range
@@ -20,30 +21,31 @@ constexpr uint8_t OCTAVES_2_NOTES = 11;
 
 class SequencerDriver {
 public:
-	SequencerDriver();
+	SequencerDriver(AD5695* dac_driver);
 	virtual ~SequencerDriver();
 	void begin();
 	void setBPM(uint8_t bpm);
 	uint8_t getBPM();
 
-	inline static uint8_t getSequencerCount() { return _sequencer_count; }
+	inline static uint8_t getSequencerCount() { return sequencer_count; }
 	static void (*const HANDLERS[N_SEQUENCERS])();
 //	static void (*update)(); // TODO: Assign function such that all outputs update at once
+	bool updateOutput(void);
 
 	uint16_t getDacValue(uint8_t note);
 	uint16_t getDacValue(uint8_t note, uint8_t octave);
 
 	// Setters and Getters
-	inline bool getStepFlag() { return _step_flag; }
-	inline void clearStepFlag() { _step_flag = false; }
-	inline uint8_t getThisIndex(){ return _this_index; }
-	inline uint8_t getMaxLength() {return _max_length;}
-	inline uint8_t getSequenceLength() {return _length;}
-	inline void setSequenceLength(uint8_t len) { _length = len;}
-	inline uint8_t getId() { return _sequencer_id; }
-	inline void setValue(uint8_t index, uint8_t note){ data[index] = getDacValue(note); }
-	inline void setThisValue(uint8_t note){ data[_this_index] = getDacValue(note); }
-	inline uint16_t getThisValue(){ return data[_this_index]; }
+	inline uint8_t getThisIndex(){ return this_index; }
+	inline void restartIndex(){ this_index = 0; }
+	inline void incrementIndex(){ this_index = (this_index < length - 1) ? this_index + 1 : 0; }
+	inline uint8_t getMaxLength() {return max_length;}
+	inline uint8_t getSequenceLength() {return length;}
+	inline void setSequenceLength(uint8_t len) { length = len;}
+	inline uint8_t getId() { return sequencer_id; }
+	inline void setNote(uint8_t index, uint8_t note){ data[index] = getDacValue(note); }
+	inline void setThisNote(uint8_t note){ data[this_index] = getDacValue(note); }
+	inline uint16_t getThisValue(){ return data[this_index]; }
 	inline void incrementOctave(){ if(octave < N_OCTAVES - 1) octave++; }
 	inline void decrementOctave(){ if(octave > 0) octave--; }
 	uint8_t getOctave(){ return octave; }
@@ -61,25 +63,35 @@ private:
 		}
 	}
 	void step();
-	static uint8_t _sequencer_count;
-	static constexpr uint8_t _max_length = 12;
+	static uint8_t sequencer_count;
+	static constexpr uint8_t max_length = 12;
 
-	// methods
+
 
 	// instance specific
-	// could also make this more extensible with a virtual parent class of led driver + DAC
+	AD5695* DacDriver;
+	// TODO: have these be determined in constructor, perhaps given pin that corresponds to the sequencer
+	DacAddr dac_addr = DacAddr::DACA;
+	uint8_t gate_mask = 1 << 5; // Gate output mask within port
+	volatile uint8_t* gate_pin_port = &PORTD; // Port corresponding setting gate pin
+	volatile uint8_t* gate_settings_port = &DDRD; // Settings register
 
-	//data that can change
-	uint8_t _sequencer_id = 0;
-	uint8_t _bpm = 120;
-	uint16_t data[_max_length] = {0};
+
+	// data that can change
+	uint8_t sequencer_id = 0;
+	uint8_t bpm = 120;
+
+	uint16_t data[max_length] = {0};
 	uint8_t octave = 0;
+	uint8_t length = 12;
+	uint8_t this_index = length-1;
 
 	// variables used in ISR;
-	volatile bool _step_flag;
-	volatile uint8_t _length = 12;
-	volatile uint8_t _this_index = _length-1;
-	volatile uint8_t _next_index = 0; // TODO: why have this at all?
+	volatile bool play_flag;
+	volatile bool stop_flag;
+	volatile uint16_t tic_count = 0; // Number of times interrupt has been hit
+	volatile uint16_t tic_length_on;
+	volatile uint16_t max_tic_count = 500; // Number of interrupt hits for each step = bpm / 0.001s
 
 
 };

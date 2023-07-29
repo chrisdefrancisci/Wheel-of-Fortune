@@ -81,6 +81,8 @@ const char *const string_table[] PROGMEM = {
 		string_18, string_19
 };
 
+const uint8_t DAC_DRIVER_ADDRESS = B0001100;
+
 void getProgmemString(int i, char* buffer);
 
 #endif /* HARDWARE_H_ */

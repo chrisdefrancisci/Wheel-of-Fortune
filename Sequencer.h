@@ -20,7 +20,6 @@
 #include "CapacitiveButtons.h"
 #include "SPI.h"
 #include "StateMachine.h"
-#include "AD5695.h"
 
 
 //end of add your includes here

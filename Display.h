@@ -66,6 +66,7 @@ public:
 	void peripheralOff();
 	void step(uint8_t sequencer_id, uint8_t this_index);
 	void displayPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys, rgb8_t color = WHITE_RGB);
+	void togglePlayPause(rgb8_t color = WHITE_RGB, bool off = false);
 
 private:
 	IS31FL3246_LED_driver circular_led_driver; // Driver for LEDs in a circle, with address b0110 000x

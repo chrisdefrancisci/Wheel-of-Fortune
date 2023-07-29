@@ -134,3 +134,21 @@ void Display::displayPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys, rgb8
 	Serial.println();
 	peripheral_led_driver.update();
 }
+
+
+/**
+ * Toggles the play : pause LED in order to indicate recording in progress.
+ * @param color The color to toggle the LED.
+ * @param off True if LED should be turned off, as needed when exiting record mode. Defaults to false.
+ */
+void Display::togglePlayPause(rgb8_t color, bool off) {
+	static bool last_on = true; // Used to toggle every call. Initial value starts by turning it off.
+	if (off || last_on) {
+		last_on = false;
+		peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], OFF_RGB);
+	}
+	else {
+		last_on = true;
+		peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], color);
+	}
+}
