@@ -4,7 +4,6 @@
 // Constants
 const uint16_t recording_blink_time = 500; // Visual indicator for recording
 
-
 // DAC
 //const uint8_t dac_driver_address = B0001100;
 
@@ -85,7 +84,7 @@ void loop()
 	Bitfield<QT1245_DETECT_BYTES> newPressedKeys;
 
 	// Visual indicators
-	static uint16_t last_blink_time = 0;
+	static uint32_t last_blink_time = 0;
 
 	Serial.flush();
 	// transfer data from device
@@ -101,25 +100,30 @@ void loop()
 														  //	Although some debouncing may be necessary?
 
 
-		if (allPressedKeys[BUTTON_PLAY]) {
+		if (newPressedKeys[BUTTON_PLAY]) {
 			// Check keys for state transition
 			if (allPressedKeys[BUTTON_FUNC]) {
 				// Start or stop recording
+				// TODO: this doesn't really seem to work
 				if (StateManager.getState() == SequencerState::Stop){
 					StateManager.setState(SequencerState::Record);
+					Serial.println("Record state");
 					SeqDriver.restartIndex();
 				}
 				else {
 					StateManager.setState(SequencerState::Stop);
+					Serial.println("Stop state");
 				}
 			}
 			// If stopped, play. Otherwise, stop.
-			if (StateManager.getState() == SequencerState::Stop){
+			else if (StateManager.getState() == SequencerState::Stop){
 				SeqDriver.restartIndex();
 				StateManager.setState(SequencerState::Play);
+				Serial.println("Play state");
 			}
 			else {
 				StateManager.setState(SequencerState::Stop);
+				Serial.println("Stop state");
 			}
 		}
 		else if (TouchDriver.getNewNote() >= NOTE_i && TouchDriver.getNewNote() <= NOTE_vii) {
@@ -132,6 +136,7 @@ void loop()
 				break;
 			case SequencerState::Record:
 				// play the note
+				Serial.print("Writing to index: "); Serial.println(SeqDriver.getThisIndex());
 				DacDriver.writeVout(active_dac, SeqDriver.getDacValue((uint8_t)TouchDriver.getNewNote(),
 						SeqDriver.getOctave()));
 				// record the note
@@ -201,6 +206,7 @@ void loop()
 	}
 	else if (StateManager.getState() == SequencerState::Record) {
 		if (millis() > last_blink_time + recording_blink_time) {
+			last_blink_time = millis();
 			// TODO: toggle the play : pause button
 			DisplayDriver.togglePlayPause(active_color);
 		}

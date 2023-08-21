@@ -25,11 +25,13 @@ public:
 //	bool getKey(uint8_t key);
 	uint8_t getNewNote(void);
 	inline Bitfield<QT1245_DETECT_BYTES> getAllPressedKeys(void) { return allPressedKeys; }
+	inline Bitfield<QT1245_DETECT_BYTES> getNewChangedKeys(void) { return newChangedKeys; }
 	inline Bitfield<QT1245_DETECT_BYTES> getNewPressedKeys(void) { return newPressedKeys; }
 private:
 	AT42_QT1245_Touch_driver TouchDriver;
 	Display* DisplayDriver;
 	Bitfield<QT1245_DETECT_BYTES> allPressedKeys;
+	Bitfield<QT1245_DETECT_BYTES> newChangedKeys;
 	Bitfield<QT1245_DETECT_BYTES> newPressedKeys;
 };
 

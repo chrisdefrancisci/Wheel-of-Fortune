@@ -51,6 +51,11 @@ CommStatus CapacitiveButtons::begin(void) {
 	// Write to EEPROM registers below - only need to be called once per device
 //	status |= TouchDriver.setKeySetupsBL(new_BL, 0, QT1245_N_KEYS);
 //	status |= TouchDriver.setKeySetupsAKS(new_AKS, 0, QT1245_N_KEYS);
+//	status |= TouchDriver.setKeySetupsAKS(0, BUTTON_FUNC, 1); // Try disabling AKS on these two keys
+//	status |= TouchDriver.setKeySetupsAKS(0, BUTTON_PLAY, 1); // This allows many other keys to be detected when they are pressed
+//	status |= TouchDriver.setKeySetupsNDIL(7, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // TODO perhaps focus this to
+//	status |= TouchDriver.setKeySetupsFDIL(7, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // only which keys need it instead of all peripheral keys
+//	status |= TouchDriver.setKeySetupsNTHR(7, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // only which keys need it instead of all peripheral keys
 	// Threshold Multiplier THRM
 	TouchDriver.readData(QT1245_DWELL_RIB_THRM_FHM_ADDR, 1, &ADDR_244);
 	Serial.print("Initial ADDR 244 = "); Serial.print(ADDR_244, BIN);
@@ -92,10 +97,11 @@ CommStatus CapacitiveButtons::begin(void) {
  * @return
  */
 Bitfield<QT1245_DETECT_BYTES> CapacitiveButtons::updatePressedKeys(void) {
-	Bitfield<QT1245_DETECT_BYTES> oldPressedButtons = allPressedKeys;
-	TouchDriver.getKeyStatus(allPressedKeys);
-	newPressedKeys = oldPressedButtons ^ allPressedKeys;
-	return newPressedKeys;
+	Bitfield<QT1245_DETECT_BYTES> oldPressedKeys = allPressedKeys;
+	printWireStatus(TouchDriver.getKeyStatus(allPressedKeys));
+	newPressedKeys = (~oldPressedKeys) & allPressedKeys;
+	newChangedKeys = oldPressedKeys ^ allPressedKeys;
+	return newChangedKeys;
 }
 
 /**
