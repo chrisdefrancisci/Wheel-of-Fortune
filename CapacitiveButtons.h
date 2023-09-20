@@ -23,7 +23,7 @@ public:
 	Bitfield<QT1245_DETECT_BYTES> updatePressedKeys(void);
 	void printKeys(Bitfield<QT1245_DETECT_BYTES> printBuffer);
 //	bool getKey(uint8_t key);
-	uint8_t getNewNote(void);
+	uint8_t getChangedNote(void);
 	inline Bitfield<QT1245_DETECT_BYTES> getAllPressedKeys(void) { return allPressedKeys; }
 	inline Bitfield<QT1245_DETECT_BYTES> getNewChangedKeys(void) { return newChangedKeys; }
 	inline Bitfield<QT1245_DETECT_BYTES> getNewPressedKeys(void) { return newPressedKeys; }

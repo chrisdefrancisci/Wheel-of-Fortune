@@ -10,13 +10,7 @@ const uint16_t recording_blink_time = 500; // Visual indicator for recording
 // Other
 // TODO find a better way to do pin assignments that doesn't involve converting to and from
 // 		the arduino pin convention
-volatile uint8_t* pDebugLedSetup = &DDRC;
-volatile uint8_t* pDebugLedPort = &PORTC;
-const uint8_t debugLed = 1 << 0;
 
-volatile uint8_t* pDevResetSetup = &DDRB;
-volatile uint8_t* pDevResetPort = &PORTB;
-const uint8_t devReset = 1 << 1;
 
 // Global variables
 Display DisplayDriver;
@@ -32,10 +26,21 @@ void setup()
 {
 
 	// Pin setups
+	// Debug LED
 	*pDebugLedSetup |= debugLed; // Set to output (1)
 //	*pDebugLedPort |= debugLed; // Set high
+	// Device peripherals
 	*pDevResetSetup |= devReset; // Set to output (1)
 	*pDevResetPort |= devReset; // Set high
+	//Gate outputs
+	*pGate0Setup |= gate0; // Set to output (1)
+	*pGate0Port &= ~gate0; // Set low
+	*pGate1Setup |= gate1; // Set to output (1)
+	*pGate1Port &= ~gate1; // Set low
+	*pGate2Setup |= gate2; // Set to output (1)
+	*pGate2Port &= ~gate2; // Set low
+	*pGate3Setup |= gate3; // Set to output (1)
+	*pGate3Port &= ~gate3; // Set low
 
 	// Communication setups
 
@@ -126,21 +131,38 @@ void loop()
 				Serial.println("Stop state");
 			}
 		}
-		else if (TouchDriver.getNewNote() >= NOTE_i && TouchDriver.getNewNote() <= NOTE_vii) {
+		else if (TouchDriver.getChangedNote() >= NOTE_i && TouchDriver.getChangedNote() <= NOTE_vii) {
 			// Check keys for new note
 			switch (StateManager.getState()) {
 			case SequencerState::Stop:
 				// play the note
-				DacDriver.writeVout(active_dac, SeqDriver.getDacValue((uint8_t)TouchDriver.getNewNote(),
+				DacDriver.writeVout(active_dac, SeqDriver.getDacValue((uint8_t)TouchDriver.getChangedNote(),
 						SeqDriver.getOctave()));
+				if (TouchDriver.getAllPressedKeys()[TouchDriver.getChangedNote()]) {
+					// Turn gate on
+					// TODO: Why is this backwards of what I think it should be??
+					// 	Either:
+					//	(1) What I think is turning the gate on is turning it off - issue with bitwise manipulation
+					// 		I think this is less likely!
+					//  (2) I've got something backwards about pressing / releasing buttons
+					//		But this also seems unlikely, since the key pressing seems to generally work
+					//  So I guess there's a third thing??
+//					*(pGatePortArray[active_sequencer]) |= gateArray[active_sequencer];
+					*(pGatePortArray[active_sequencer]) &= ~gateArray[active_sequencer];
+				}
+				else {
+					// Turn gate off
+//					*(pGatePortArray[active_sequencer]) &= ~gateArray[active_sequencer];
+					*(pGatePortArray[active_sequencer]) |= gateArray[active_sequencer];
+				}
 				break;
 			case SequencerState::Record:
 				// play the note
 				Serial.print("Writing to index: "); Serial.println(SeqDriver.getThisIndex());
-				DacDriver.writeVout(active_dac, SeqDriver.getDacValue((uint8_t)TouchDriver.getNewNote(),
+				DacDriver.writeVout(active_dac, SeqDriver.getDacValue((uint8_t)TouchDriver.getChangedNote(),
 						SeqDriver.getOctave()));
 				// record the note
-				SeqDriver.setThisNote((uint8_t)TouchDriver.getNewNote());
+				SeqDriver.setThisNote((uint8_t)TouchDriver.getChangedNote());
 				SeqDriver.incrementIndex();
 				if (SeqDriver.getThisIndex() == 0) {
 					StateManager.setState(SequencerState::Stop);
@@ -208,6 +230,10 @@ void loop()
 		if (millis() > last_blink_time + recording_blink_time) {
 			last_blink_time = millis();
 			// TODO: toggle the play : pause button
+			//	This function is called appropriately, but nothing happens.
+			//  The toggling internal to this function also appears to work, alternating between
+			//  the if and else clauses.
+			//  I think maybe "displayPressedKeys" is getting in the way
 			DisplayDriver.togglePlayPause(active_color);
 		}
 	}

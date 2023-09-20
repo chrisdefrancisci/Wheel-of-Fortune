@@ -151,4 +151,5 @@ void Display::togglePlayPause(rgb8_t color, bool off) {
 		last_on = true;
 		peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], color);
 	}
+	peripheral_led_driver.update();
 }

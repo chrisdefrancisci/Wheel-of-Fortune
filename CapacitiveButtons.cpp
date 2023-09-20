@@ -48,27 +48,34 @@ CommStatus CapacitiveButtons::begin(void) {
 		Serial.flush();
 		delay(10000);
 	}
+
 	// Write to EEPROM registers below - only need to be called once per device
-//	status |= TouchDriver.setKeySetupsBL(new_BL, 0, QT1245_N_KEYS);
-//	status |= TouchDriver.setKeySetupsAKS(new_AKS, 0, QT1245_N_KEYS);
-//	status |= TouchDriver.setKeySetupsAKS(0, BUTTON_FUNC, 1); // Try disabling AKS on these two keys
-//	status |= TouchDriver.setKeySetupsAKS(0, BUTTON_PLAY, 1); // This allows many other keys to be detected when they are pressed
-//	status |= TouchDriver.setKeySetupsNDIL(7, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // TODO perhaps focus this to
-//	status |= TouchDriver.setKeySetupsFDIL(7, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // only which keys need it instead of all peripheral keys
-//	status |= TouchDriver.setKeySetupsNTHR(7, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // only which keys need it instead of all peripheral keys
+//#define INIT_TOUCH_DRIVER
+#ifdef INIT_TOUCH_DRIVER
+	status |= TouchDriver.setKeySetupsBL(new_BL, 0, QT1245_N_KEYS);
+	status |= TouchDriver.setKeySetupsAKS(new_AKS, 0, QT1245_N_KEYS);
+	status |= TouchDriver.setKeySetupsAKS(0, BUTTON_FUNC, 1); // Try disabling AKS on these two keys
+	status |= TouchDriver.setKeySetupsAKS(0, BUTTON_PLAY, 1); // This allows many other keys to be detected when they are pressed
+	status |= TouchDriver.setKeySetupsNDIL(5, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // TODO perhaps focus this to
+	status |= TouchDriver.setKeySetupsFDIL(5, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // only which keys need it instead of all peripheral keys
+	status |= TouchDriver.setKeySetupsNTHR(2, BUTTON_OUT_1, BUTTON_PLAY - BUTTON_OUT_1); // only which keys need it instead of all peripheral keys
+#endif
+
 	// Threshold Multiplier THRM
 	TouchDriver.readData(QT1245_DWELL_RIB_THRM_FHM_ADDR, 1, &ADDR_244);
 	Serial.print("Initial ADDR 244 = "); Serial.print(ADDR_244, BIN);
 	// Clear or set bits for THRM
 	// TODO: find a better way to do this by setting two bits at once using bitfield class
 	// and casting bitfield to uint8_t
-//	ADDR_244 = new_THRM & 1 ? ADDR_244 & ~(new_THRM << QT1245_THRM_BIT) :
-//			ADDR_244 | (new_THRM << QT1245_THRM_BIT);
-//	ADDR_244 = new_THRM & (1 << 1) ? ADDR_244 & ~(new_THRM << (QT1245_THRM_BIT + 1)) :
-//			ADDR_244 | (new_THRM << (QT1245_THRM_BIT + 1));
-//	TouchDriver.writeData(QT1245_DWELL_RIB_THRM_FHM_ADDR, ADDR_244);
-//
-//	TouchDriver.restart(); // Restart is required after writing to setups
+#ifdef INIT_TOUCH_DRIVER
+	ADDR_244 = new_THRM & 1 ? ADDR_244 & ~(new_THRM << QT1245_THRM_BIT) :
+			ADDR_244 | (new_THRM << QT1245_THRM_BIT);
+	ADDR_244 = new_THRM & (1 << 1) ? ADDR_244 & ~(new_THRM << (QT1245_THRM_BIT + 1)) :
+			ADDR_244 | (new_THRM << (QT1245_THRM_BIT + 1));
+	TouchDriver.writeData(QT1245_DWELL_RIB_THRM_FHM_ADDR, ADDR_244);
+
+	TouchDriver.restart(); // Restart is required after writing to setups
+#endif
 
 	TouchDriver.readData(QT1245_DWELL_RIB_THRM_FHM_ADDR, 1, &ADDR_244);
 	Serial.print(" -> Updated ADDR 244 = "); Serial.println(ADDR_244, BIN);
@@ -121,12 +128,12 @@ void CapacitiveButtons::printKeys(Bitfield<QT1245_DETECT_BYTES> printBuffer) {
 }
 
 /**
- * Check to see if any notes have been pressed, return the first found.
+ * Check to see if any notes have been pressed or released, return the first found.
  * @return Number of note if there is one, -1 for no new note.
  */
-uint8_t CapacitiveButtons::getNewNote(void) {
+uint8_t CapacitiveButtons::getChangedNote(void) {
 	for (uint8_t i = NOTE_i; i <= NOTE_vii; i++) {
-		if (newPressedKeys[i]) {
+		if (newChangedKeys[i]) {
 			return i;
 		}
 	}

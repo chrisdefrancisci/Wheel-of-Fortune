@@ -10,6 +10,53 @@
 
 #include "Arduino.h"
 
+/** Debug LED setup register */
+extern volatile uint8_t* pDebugLedSetup;
+/** Debug LED port */
+extern volatile uint8_t* pDebugLedPort;
+/** Debug LED bit */
+const uint8_t debugLed = 1 << 0;
+
+/** Device (peripheral) reset setup register */
+extern volatile uint8_t* pDevResetSetup;
+/** Device (peripheral) reset port */
+extern volatile uint8_t* pDevResetPort;
+/** Device (peripheral) reset bit */
+const uint8_t devReset = 1 << 1;
+
+/** Gate 0 setup register */
+extern volatile uint8_t* pGate0Setup;
+/** Gate 0 port */
+extern volatile uint8_t* pGate0Port;
+/** Gate 0 bit */
+const uint8_t gate0 = 1 << 5;
+
+/** Gate 1 setup register */
+extern volatile uint8_t* pGate1Setup;
+/** Gate 1 port */
+extern volatile uint8_t* pGate1Port;
+/** Gate 1 bit */
+const uint8_t gate1 = 1 << 6;
+
+/** Gate 2 setup register */
+extern volatile uint8_t* pGate2Setup;
+/** Gate 2 port */
+extern volatile uint8_t* pGate2Port;
+/** Gate 2 bit */
+const uint8_t gate2 = 1 << 7;
+
+/** Gate 3 setup register */
+extern volatile uint8_t* pGate3Setup;
+/** Gate 3 port */
+extern volatile uint8_t* pGate3Port;
+/** Gate 3 bit */
+const uint8_t gate3 = 1 << 0;
+
+extern volatile uint8_t* pGatePortArray[4];
+extern uint8_t gateArray[4];
+
+// TODO(Chris): could also make above const pointers?
+
 /**
  *
  */
