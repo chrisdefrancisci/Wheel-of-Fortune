@@ -19,6 +19,15 @@ SequencerDriver::SequencerDriver(AD5695* dac_driver) :
 	sequencer_id = sequencer_count;
 	sequencer_count++;
 	instances[sequencer_id] = this;
+	// Assign gate I/O pin based on sequencer ID
+//	gate_settings_port = pGateSetupArray[sequencer_id];
+//	Serial.println("Constructor!!!");
+	gate_settings_port = pGateSetupArray[sequencer_id];
+	gate_pin_port = pGatePortArray[sequencer_id];
+	gate_mask = gateArray[sequencer_id];
+//	Serial.print("sequencer_id = "); Serial.println(sequencer_id);
+//	Serial.print("Gate pin port = 0x"); Serial.print((uint8_t)gate_pin_port, HEX); Serial.print(" vs pGatePortArray[0] = 0x");
+//	Serial.println((uint8_t)pGatePortArray[0], HEX);
 }
 
 /**
@@ -43,9 +52,10 @@ void SequencerDriver::begin(void){
 	// divide by 10, we want 0.0001s tic time for our counters
 	// And our lowest bpm is 40, corresponding to maximum time of
 	// 60 s/min / 40 bpm = 1.5s = 1428.6 ticks @ 0.00105 ticks/s, so a int16_t should be large enough
+	// 		I don't think that actually matters for the intterupt - the uint16_t counter is needed for the handler, but the
+	//		interrupt will always execute at 1kHz?
 	// compare match register = 16,000,000 Hz/ (prescalar * 1,000 Hz) -1, let prescalar = 64
-	// compare match register = 16e6 Hz / (64  * 1e3 Hz) = 250
-
+	// compare match register = 16e6 Hz / (64  * 1e3 Hz) - 1 = 249
 
 	// interrupt frequency (Hz) = (clock speed 16,000,000Hz) / (prescaler * (compare match register + 1))
 
@@ -55,7 +65,7 @@ void SequencerDriver::begin(void){
 	TCCR1B = 0; // Clear register
 	TCNT1 = 0; // initialize counter value to 0
 	// Set compare match register
-	OCR1A = 250; //
+	OCR1A = 249; //
 	TCCR1B |= (1 << WGM12); // Turn on CTC? mode
 //	TCCR1B |= (1 << CS12) | (1 << CS10); // Set 2 bits for 1024 prescalar
 	TCCR1B |= (1 << CS11) | (1 << CS10); // Set 2 bits for 64 prescalar
@@ -63,8 +73,10 @@ void SequencerDriver::begin(void){
 	sei(); // Enable interrupts
 
 	// Initialize gate pin as output, set low
-	*gate_settings_port |= gate_mask;
-	*gate_pin_port &= ~(gate_mask);
+//	*gate_settings_port |= gate_mask;
+//	*gate_pin_port &= ~gate_mask;
+	*pGate0Setup |= gate0; // Set to output (1)
+	*pGate0Port &= ~gate0; // Set low
 
 }
 

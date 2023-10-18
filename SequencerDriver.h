@@ -42,13 +42,15 @@ public:
 	inline uint8_t getMaxLength() {return max_length;}
 	inline uint8_t getSequenceLength() {return length;}
 	inline void setSequenceLength(uint8_t len) { length = len;}
-	inline uint8_t getId() { return sequencer_id; }
+	inline uint8_t getId() { return sequencer_id; } // I don't think this is useful??
 	inline void setNote(uint8_t index, uint8_t note){ data[index] = getDacValue(note); }
 	inline void setThisNote(uint8_t note){ data[this_index] = getDacValue(note); }
 	inline uint16_t getThisValue(){ return data[this_index]; }
 	inline void incrementOctave(){ if(octave < N_OCTAVES - 1) octave++; }
 	inline void decrementOctave(){ if(octave > 0) octave--; }
 	uint8_t getOctave(){ return octave; }
+	void gateOn(){ *(gate_pin_port) |= gate_mask; }
+	void gateOff(){ *(gate_pin_port) &= ~gate_mask; }
 
 
 private:
@@ -73,12 +75,12 @@ private:
 	// TODO: have these be determined in constructor, perhaps given pin that corresponds to the sequencer
 	DacAddr dac_addr = DacAddr::DACA;
 	uint8_t gate_mask = 1 << 5; // Gate output mask within port
-	volatile uint8_t* gate_pin_port = &PORTD; // Port corresponding setting gate pin
-	volatile uint8_t* gate_settings_port = &DDRD; // Settings register
+	volatile uint8_t* gate_pin_port;// = &PORTD; // Port corresponding setting gate pin
+	volatile uint8_t* gate_settings_port;// = &DDRD; // Settings register
 
 
 	// data that can change
-	uint8_t sequencer_id = 0;
+	uint8_t sequencer_id;
 	uint8_t bpm = 120;
 
 	uint16_t data[max_length] = {0};
@@ -89,9 +91,14 @@ private:
 	// variables used in ISR;
 	volatile bool play_flag;
 	volatile bool stop_flag;
-	volatile uint16_t tic_count = 0; // Number of times interrupt has been hit
-	volatile uint16_t tic_length_on;
-	volatile uint16_t max_tic_count = 500; // Number of interrupt hits for each step = bpm / 0.001s
+	/// Number of times interrupt is hit
+	volatile uint16_t tic_count = 0;
+	/// Number of interrupt hits that correspond to gate on / note playing (tic_length_on) / (max_tic_count) is
+	/// gate length from 0 to 1
+	volatile uint16_t tic_length_on = 250;
+	/// Number of interrupt hits for each step. max_tic_count = 60 s/min / bpm * 1kHz
+	/// Ex: bpm = 120 -> 0.5s, interrupt freq = 1kHz = 0.001s, max_tic_count = 60 s/min / 120bpm * 1kHz = 500 ticks
+	volatile uint16_t max_tic_count = 500;
 
 
 };

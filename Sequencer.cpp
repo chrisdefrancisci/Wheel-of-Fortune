@@ -15,7 +15,7 @@ const uint16_t recording_blink_time = 500; // Visual indicator for recording
 // Global variables
 Display DisplayDriver;
 AD5695 DacDriver(DAC_DRIVER_ADDRESS);
-SequencerDriver	SeqDriver(&DacDriver);
+SequencerDriver	SeqDriver(&DacDriver); // TODO: This will only create the first sequencer, I need to create 3 more
 StateMachine StateManager;
 
 //AT42_QT1245_Touch_driver TouchDriver(CHIP_SELECT_PIN, NCHANGE_PIN, NDRDY_PIN, ARDUINO_SELECT_PIN);
@@ -33,14 +33,14 @@ void setup()
 	*pDevResetSetup |= devReset; // Set to output (1)
 	*pDevResetPort |= devReset; // Set high
 	//Gate outputs
-	*pGate0Setup |= gate0; // Set to output (1)
-	*pGate0Port &= ~gate0; // Set low
-	*pGate1Setup |= gate1; // Set to output (1)
-	*pGate1Port &= ~gate1; // Set low
-	*pGate2Setup |= gate2; // Set to output (1)
-	*pGate2Port &= ~gate2; // Set low
-	*pGate3Setup |= gate3; // Set to output (1)
-	*pGate3Port &= ~gate3; // Set low
+//	*pGate0Setup |= gate0; // Set to output (1)
+//	*pGate0Port &= ~gate0; // Set low
+//	*pGate1Setup |= gate1; // Set to output (1)
+//	*pGate1Port &= ~gate1; // Set low
+//	*pGate2Setup |= gate2; // Set to output (1)
+//	*pGate2Port &= ~gate2; // Set low
+//	*pGate3Setup |= gate3; // Set to output (1)
+//	*pGate3Port &= ~gate3; // Set low
 
 	// Communication setups
 
@@ -148,12 +148,12 @@ void loop()
 					//		But this also seems unlikely, since the key pressing seems to generally work
 					//  So I guess there's a third thing??
 //					*(pGatePortArray[active_sequencer]) |= gateArray[active_sequencer];
-					*(pGatePortArray[active_sequencer]) &= ~gateArray[active_sequencer];
+					SeqDriver.gateOn();
 				}
 				else {
 					// Turn gate off
 //					*(pGatePortArray[active_sequencer]) &= ~gateArray[active_sequencer];
-					*(pGatePortArray[active_sequencer]) |= gateArray[active_sequencer];
+					SeqDriver.gateOff();
 				}
 				break;
 			case SequencerState::Record:
@@ -222,8 +222,10 @@ void loop()
 
 	if (StateManager.getState() == SequencerState::Play)
 	{
-		if (SeqDriver.updateOutput()) {
+		if (SeqDriver.updateOutput()) { // TODO: Need to have an array of 4 Sequencer drivers, iterate over them
 			DisplayDriver.step(SeqDriver.getId(), SeqDriver.getThisIndex());
+			// I don't think getId is at all useful
+//			DisplayDriver.step(active_sequencer, SeqDriver.getThisIndex());
 		}
 	}
 	else if (StateManager.getState() == SequencerState::Record) {
