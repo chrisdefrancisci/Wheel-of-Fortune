@@ -63,7 +63,7 @@ bool Display::rainbowLoop(unsigned long display_millis){
 }
 
 /**
- * Turns the entire set of circular LEDs.
+ * Turns off the entire set of circular LEDs.
  */
 void Display::circleOff() {
 	for (uint8_t ledIdx = 0; ledIdx < ledLen; ledIdx++){
@@ -73,7 +73,7 @@ void Display::circleOff() {
 }
 
 /**
- * Turns of the entire set of peripheral LEDs.
+ * Turns off the entire set of peripheral LEDs.
  */
 void Display::peripheralOff() {
 	for (uint8_t ledIdx = 0; ledIdx < ledLen; ledIdx++){
@@ -89,10 +89,11 @@ void Display::peripheralOff() {
  */
 void Display::step(uint8_t sequencer_id, uint8_t this_index) {
 	// Turn off previous LED, save current LED as previous
-	circular_led_driver.writeLed(last_LED[sequencer_id], OFF_RGB);
-	last_LED[sequencer_id] = button2led[this_index];
-	circular_led_driver.writeLed(button2led[this_index], sequencerColors[sequencer_id]);
-	circular_led_driver.update();
+//	circular_led_driver.writeLed(last_LED[sequencer_id], OFF_RGB);
+//	last_LED[sequencer_id] = button2led[this_index];
+//	circular_led_driver.writeLed(button2led[this_index], sequencerColors[sequencer_id]);
+//	circular_led_driver.update();
+	sequencer_step[sequencer_id] = this_index;
 }
 
 /**
@@ -141,15 +142,172 @@ void Display::displayPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys, rgb8
  * @param color The color to toggle the LED.
  * @param off True if LED should be turned off, as needed when exiting record mode. Defaults to false.
  */
-void Display::togglePlayPause(rgb8_t color, bool off) {
-	static bool last_on = true; // Used to toggle every call. Initial value starts by turning it off.
-	if (off || last_on) {
-		last_on = false;
-		peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], OFF_RGB);
+void Display::recordingAnimation(rgb8_t color, bool off) {
+	static uint32_t last_blink_time = 0;
+	if (millis() > last_blink_time + RECORDING_BLINK_TIME) {
+		last_blink_time = millis();
+		static bool last_on = true; // Used to toggle every call. Initial value starts by turning it off.
+		if (off || last_on) {
+			last_on = false;
+			peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], OFF_RGB);
+		}
+		else {
+			last_on = true;
+			peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], color);
+		}
+		peripheral_led_driver.update();
+	}
+}
+
+
+/**
+ *
+ * @param button
+ * @param color
+ */
+void Display::writeLed(ButtonMap_t button, rgb8_t color) {
+	if (button <= BUTTON_STEP_11) {
+		circular_led_driver.writeLed(button2led[button], color);
+		circular_led_driver.update();
 	}
 	else {
-		last_on = true;
-		peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], color);
+		peripheral_led_driver.writeLed(button2led[button], color);
+		peripheral_led_driver.update();
 	}
+}
+
+/**
+ *
+ * @param state The current state - determines what the untouched display is.
+ */
+void Display::displayState(SequencerState state) {
+	update_display = true;
+	if (state == SequencerState::Play) {
+		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
+			circular_default[i] = OFF_RGB; // No button2led needed when all are the same
+		}
+		for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++) {
+			peripheral_default[i] = OFF_RGB;
+		}
+	}
+	else if (state == SequencerState::Stop) {
+		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
+			// Display a black and white "keyboard", where sharp keys are black
+			if (i == NOTE_i_s || i == NOTE_ii_s || i == NOTE_iv_s || i == NOTE_v_s || i == NOTE_vi_s) {
+				circular_default[button2led[i]] = OFF_RGB; // button2led is needed because using button indices
+			}
+			else {
+				circular_default[button2led[i]] = WHITE_RGB;
+			}
+		}
+		for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++) {
+			peripheral_default[i] = OFF_RGB;
+		}
+
+		peripheral_default[button2led[BUTTON_PLAY]] = WHITE_RGB;
+
+		// Reset sequencer_step to something that will not be displayed
+		for (uint8_t i = 0; i < N_SEQUENCERS; i++) {
+			sequencer_step[i] = UINT8_MAX;
+		}
+	}
+	else if (state == SequencerState::Record) {
+		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
+			// Display a black and white "keyboard", where sharp keys are black
+			if (i == NOTE_i_s || i == NOTE_ii_s || i == NOTE_iv_s || i == NOTE_v_s || i == NOTE_vi_s) {
+				circular_default[button2led[i]] = OFF_RGB;
+			}
+			else {
+				circular_default[button2led[i]] = WHITE_RGB;
+			}
+		}
+		for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++) {
+			peripheral_default[i] = OFF_RGB;
+		}
+
+		if (active_sequencer == 0) {
+			peripheral_default[button2led[BUTTON_OUT_1]] = sequencerColors[active_sequencer];
+		}
+		else if (active_sequencer == 1) {
+			peripheral_default[button2led[BUTTON_OUT_2]] = sequencerColors[active_sequencer];
+		}
+		else if (active_sequencer == 2) {
+			peripheral_default[button2led[BUTTON_OUT_3]] = sequencerColors[active_sequencer];
+		}
+		else if (active_sequencer == 3) {
+			peripheral_default[button2led[BUTTON_OUT_4]] = sequencerColors[active_sequencer];
+		}
+
+		// Reset sequencer_step to something that will not be displayed
+		for (uint8_t i = 0; i < N_SEQUENCERS; i++) {
+			if (active_sequencer != i) {
+				sequencer_step[i] = UINT8_MAX; // TODO: this should actually align with the current index being recorded to?
+			}
+		}
+
+	}
+	else if (state == SequencerState::Error) {
+		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
+			circular_default[i] = RED_RGB;
+		}
+		for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++) {
+			peripheral_default[i] = RED_RGB;
+		}
+	}
+}
+
+/**
+ * Determine final display and write it to the LED drivers.
+ *
+ * For both the circular LEDs and the peripheral LEDs, we copy the default buffer into the current buffer,
+ * while checking for things like pressed keys, step changes, and animations.
+ */
+void Display::update() {
+	char buffer[15]; // TODO: delete
+	if (!update_display) {
+		return;
+	}
+	update_display = false;
+
+	for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
+		// Note that you can either iterate of i, or over button2led[i] but you CANNOT assign
+		// to both in the same loop. You will end up overwriting things.
+		uint8_t led_idx = button2led[i];
+		circular_current[led_idx] = circular_default[led_idx];
+		if (pressedKeys[i]) {
+			// TODO maybe not display ring if touched during play state?
+			circular_current[led_idx] = key_press_color;
+		}
+		// Map button representing current sequencer step step to LED
+//		for (uint8_t j = 0; j < N_SEQUENCERS; j++) { // TODO when multiple sequencers are implemented
+		for (uint8_t j = 0; j < 1; j++) {
+			if (sequencer_step[j] == i) {
+				circular_current[led_idx] = sequencerColors[j];
+			}
+		}
+	}
+
+	for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++) {
+		uint8_t button_idx = N_CIRCLE_LEDS + i;
+		uint8_t led_idx = button2led[button_idx];
+		peripheral_current[led_idx] = peripheral_default[led_idx];
+		if (pressedKeys[button_idx]) {
+//			getProgmemString(button_idx, buffer);
+//			Serial.println(buffer); Serial.print(" "); Serial.flush(); Serial.println();
+			peripheral_current[led_idx] = key_press_color;
+		}
+
+	}
+//	circular_led_driver.writeConsecutiveLed(0, circular_current, N_CIRCLE_LEDS); // This function doesn't work!
+	for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++)
+	{
+		circular_led_driver.writeLed(i, circular_current[i]);
+	}
+//	peripheral_led_driver.writeConsecutiveLed(0, peripheral_current, N_PERIPHERAL_LEDS);
+	for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++)
+	{
+		peripheral_led_driver.writeLed(i, peripheral_current[i]);
+	}
+	circular_led_driver.update();
 	peripheral_led_driver.update();
 }

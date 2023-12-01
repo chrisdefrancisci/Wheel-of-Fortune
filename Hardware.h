@@ -60,9 +60,9 @@ uint8_t const gateArray[] = {gate0, gate1, gate2, gate3};
 // TODO(Chris): could also make above const pointers?
 
 /**
- *
+ * Translates button order
  */
-typedef enum IOMap_def : uint8_t{
+typedef enum ButtonMap_def : uint8_t{
 	BUTTON_STEP_00, /**< BUTTON_STEP_00 */
 	BUTTON_STEP_01, /**< BUTTON_STEP_01 */
 	BUTTON_STEP_02, /**< BUTTON_STEP_02 */
@@ -83,7 +83,7 @@ typedef enum IOMap_def : uint8_t{
 	BUTTON_OCT_UP,  /**< BUTTON_OCT_UP */
 	BUTTON_OCT_DOWN,/**< BUTTON_OCT_DOWN */
 	BUTTON_PLAY     /**< BUTTON_PLAY */
-} IOMap_t;
+} ButtonMap_t;
 
 /**
  *

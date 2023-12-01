@@ -82,17 +82,20 @@ const uint8_t GCCG = 0x12; // start with global current control at fraction of m
 const uint8_t GCCR = 0x40;
 const uint8_t GCCB = 0x40;
 
-typedef struct rgb8 {
+struct rgb8_t {
 	uint8_t r;
 	uint8_t g;
 	uint8_t b;
-} rgb8_t;
+};
 
-typedef struct {
+
+struct rgb16_t {
 	uint16_t r;
 	uint16_t g;
 	uint16_t b;
-} rgb16_t;
+};
+
+template <typename T> T operator+(const T a, const T b);
 
 //class rgbGroup {
 //public:

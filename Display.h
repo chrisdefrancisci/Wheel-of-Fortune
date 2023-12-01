@@ -16,12 +16,14 @@
 #include "AT42_QT1245_Touch_driver.h" // TODO: should necessary constants from AT42..., others,
 									  // 	be moved to remove so many interdependencies?
 #include "SequencerDriver.h"
+#include "StateMachine.h"
+
 #include "Arduino.h"
 #include "Bitfield.h"
 
 // Colors
 const rgb8_t OFF_RGB = {0, 0, 0};
-const rgb8_t WHITE_RGB = {255, 255, 255};
+const rgb8_t WHITE_RGB = {90, 90, 90};
 
 const rgb8_t RED_RGB = {255, 0, 0};
 const rgb8_t ORANGE_RGB = {255, 100, 0};
@@ -55,6 +57,21 @@ const bool isRGB = true;
 const bool is8bit = true;
 const uint8_t ledLen = 12;
 
+const uint16_t RECORDING_BLINK_TIME = 500; /** ms, the amount of time on/off for recording blinking animation */
+
+union buttons { // TODO
+	rgb8_t array[N_CIRCLE_LEDS + N_PERIPHERAL_LEDS];
+	struct {
+		rgb8_t a;
+	};
+};
+
+enum class Animation : uint8_t {
+	None,
+	RainbowLoop,
+	Recording
+};
+
 class Display {
 public:
 	Display();
@@ -62,16 +79,58 @@ public:
 
 	void begin();
 	bool rainbowLoop(unsigned long display_millis);
+	void recordingAnimation(rgb8_t color = WHITE_RGB, bool off = false);
 	void circleOff();
 	void peripheralOff();
+
+
+	void displayState(SequencerState state);
+	void displayPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys, rgb8_t color); // TODO deprecated
+	/** Set current pressed keys. */
+	inline void displayAllPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys_) {
+		pressedKeys = pressedKeys_;
+		update_display = true;
+	}
+	/** Set current sequencer in order to set sequencer color. */
+	inline void displaySequencer(uint8_t sequencer) {
+		if (sequencer >= N_SEQUENCERS) { // unsigned int, so it will never be less than 0
+			sequencer = N_SEQUENCERS - 1;
+		}
+		active_sequencer = sequencer;
+		key_press_color = sequencerColors[active_sequencer];
+		update_display = true;
+	}
+	inline void displayStep(uint8_t sequencer, uint8_t step) {
+		if (sequencer >= N_SEQUENCERS) { // unsigned int, so it will never be less than 0
+			sequencer = N_SEQUENCERS - 1;
+		}
+		sequencer_step[sequencer] = step;
+		update_display = true;
+	}
+	void color(rgb8_t color); // TODO
+	void color(uint8_t sequencer_id); // TODO
 	void step(uint8_t sequencer_id, uint8_t this_index);
-	void displayPressedKeys(Bitfield<QT1245_DETECT_BYTES> pressedKeys, rgb8_t color = WHITE_RGB);
-	void togglePlayPause(rgb8_t color = WHITE_RGB, bool off = false);
+	void update(); // TODO
+	void writeLed(ButtonMap_t button, rgb8_t color);
 
 private:
 	IS31FL3246_LED_driver circular_led_driver; // Driver for LEDs in a circle, with address b0110 000x
 	IS31FL3246_LED_driver peripheral_led_driver; // Driver for LEDs in the corner, with address b0110 011x
 	uint8_t last_LED[N_SEQUENCERS]; // Keep track of which LEDs need to be cleared on the next sequencer step
+	// TODO: What data structure to use to hold current display for clearing? I think I could probably get rid of the "last_LED" stuff
+	// Instead, just have a "current default" as a class member and "modifications" passed via a function
+	uint8_t sequencer_step[N_SEQUENCERS] = { UINT8_MAX };
+	bool update_display = false;
+	bool sequencer_gate[N_SEQUENCERS] = { false };
+	rgb8_t circular_default[N_CIRCLE_LEDS];
+	rgb8_t peripheral_default[N_PERIPHERAL_LEDS];
+	rgb8_t circular_current[N_CIRCLE_LEDS]; // TODO determine if needed
+	rgb8_t peripheral_current[N_PERIPHERAL_LEDS]; // TODO determine if needed
+	rgb8_t key_press_color = WHITE_RGB;
+	uint8_t active_sequencer = 0;
+	Bitfield<QT1245_DETECT_BYTES> pressedKeys;
+	Animation animation = Animation::None;
+
 
 };
 

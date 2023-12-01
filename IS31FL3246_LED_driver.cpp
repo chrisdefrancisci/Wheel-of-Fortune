@@ -12,6 +12,39 @@
 
 #include "IS31FL3246_LED_driver.h"
 
+
+/**
+ * Implements addition operator that allows combining colors
+ * @param a First color.
+ * @param b Second color.
+ * @return Added colors
+ */
+template <typename T> T operator+(const T a, const T b) {
+	T c;
+	if (UINT8_MAX - a.r > b.r) {
+		c.r = UINT8_MAX;
+	}
+	else {
+		c.r = a.r + b.r;
+	}
+	if (UINT8_MAX - a.g > b.g) {
+		c.g = UINT8_MAX;
+	}
+	else {
+		c.g = a.g + b.g;
+	}
+	if (UINT8_MAX - a.b > b.b) {
+		c.b = UINT8_MAX;
+	}
+	else {
+		c.b = a.b + b.b;
+	}
+
+	return c;
+}
+
+template rgb8_t operator+<rgb8_t>(rgb8_t a, rgb8_t b);
+template rgb16_t operator+<rgb16_t>(rgb16_t a, rgb16_t b);
 /**
  * Class for the 12 groups of RGB LEDs
  * TODO: do I need this? Why?

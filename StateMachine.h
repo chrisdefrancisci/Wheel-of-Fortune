@@ -14,6 +14,8 @@ enum class SequencerState : uint8_t {
 	Stop,
 	Play,
 	Record,
+	// TODO: "Write" state, which would allow you to select note by index, then change gate length?
+	//	Any other parameters we want to be allowed to be changed?
 	Error
 };
 

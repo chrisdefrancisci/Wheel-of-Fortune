@@ -1,9 +1,6 @@
 // Do not remove the include below
 #include "Sequencer.h"
 
-// Constants
-const uint16_t recording_blink_time = 500; // Visual indicator for recording
-
 // DAC
 //const uint8_t dac_driver_address = B0001100;
 
@@ -66,6 +63,7 @@ void setup()
 	Serial.println("Setup complete.");
 	DisplayDriver.circleOff();
 	DisplayDriver.peripheralOff();
+	DisplayDriver.displayState(SequencerState::Stop);
 
 
 	SeqDriver.begin();
@@ -109,27 +107,28 @@ void loop()
 			// Check keys for state transition
 			if (allPressedKeys[BUTTON_FUNC]) {
 				// Start or stop recording
-				// TODO: this doesn't really seem to work
 				if (StateManager.getState() == SequencerState::Stop){
 					StateManager.setState(SequencerState::Record);
-					Serial.println("Record state");
+					Serial.print("Record state ");
 					SeqDriver.restartIndex();
 				}
 				else {
 					StateManager.setState(SequencerState::Stop);
-					Serial.println("Stop state");
+					Serial.print("Stop state ");
 				}
 			}
 			// If stopped, play. Otherwise, stop.
 			else if (StateManager.getState() == SequencerState::Stop){
 				SeqDriver.restartIndex();
 				StateManager.setState(SequencerState::Play);
-				Serial.println("Play state");
+				Serial.print("Play state");
 			}
 			else {
 				StateManager.setState(SequencerState::Stop);
-				Serial.println("Stop state");
+				SeqDriver.gateOff(); // TODO: All gates
+				Serial.print("Stop state");
 			}
+			DisplayDriver.displayState(StateManager.getState());
 		}
 		else if (TouchDriver.getChangedNote() >= NOTE_i && TouchDriver.getChangedNote() <= NOTE_vii) {
 			// Check keys for new note
@@ -139,20 +138,11 @@ void loop()
 				DacDriver.writeVout(active_dac, SeqDriver.getDacValue((uint8_t)TouchDriver.getChangedNote(),
 						SeqDriver.getOctave()));
 				if (TouchDriver.getAllPressedKeys()[TouchDriver.getChangedNote()]) {
-					// Turn gate on
-					// TODO: Why is this backwards of what I think it should be??
-					// 	Either:
-					//	(1) What I think is turning the gate on is turning it off - issue with bitwise manipulation
-					// 		I think this is less likely!
-					//  (2) I've got something backwards about pressing / releasing buttons
-					//		But this also seems unlikely, since the key pressing seems to generally work
-					//  So I guess there's a third thing??
-//					*(pGatePortArray[active_sequencer]) |= gateArray[active_sequencer];
+					// TODO: replace with array of drivers
 					SeqDriver.gateOn();
 				}
 				else {
-					// Turn gate off
-//					*(pGatePortArray[active_sequencer]) &= ~gateArray[active_sequencer];
+					// TODO: replace with array of drivers
 					SeqDriver.gateOff();
 				}
 				break;
@@ -161,11 +151,19 @@ void loop()
 				Serial.print("Writing to index: "); Serial.println(SeqDriver.getThisIndex());
 				DacDriver.writeVout(active_dac, SeqDriver.getDacValue((uint8_t)TouchDriver.getChangedNote(),
 						SeqDriver.getOctave()));
-				// record the note
-				SeqDriver.setThisNote((uint8_t)TouchDriver.getChangedNote());
-				SeqDriver.incrementIndex();
-				if (SeqDriver.getThisIndex() == 0) {
-					StateManager.setState(SequencerState::Stop);
+				if (TouchDriver.getAllPressedKeys()[TouchDriver.getChangedNote()]) {
+					// TODO: replace with array of drivers
+					SeqDriver.gateOn();
+					// record the note
+					SeqDriver.setThisNote((uint8_t)TouchDriver.getChangedNote()); // TODO: replace with array of drivers
+					SeqDriver.incrementIndex();
+					if (SeqDriver.getThisIndex() == 0) {
+						StateManager.setState(SequencerState::Stop);
+					}
+				}
+				else {
+					// TODO: replace with array of drivers
+					SeqDriver.gateOff();
 				}
 				break;
 			default:
@@ -179,24 +177,32 @@ void loop()
 			// Change which output is currently being controlled
 			active_sequencer = 0;
 			active_color = sequencerColors[active_sequencer];
+			// DisplayDriver.setActiveColor(sequencerColors[active_sequencer]); // TODO
+			DisplayDriver.displaySequencer(active_sequencer);
 			active_dac = DacAddr::DACA;
 		}
 		else if (allPressedKeys[BUTTON_OUT_2]) {
 			// Change which output is currently being controlled
 			active_sequencer = 1;
 			active_color = sequencerColors[active_sequencer];
+			// DisplayDriver.setActiveColor(sequencerColors[active_sequencer]); // TODO
+			DisplayDriver.displaySequencer(active_sequencer);
 			active_dac = DacAddr::DACB;
 		}
 		else if (allPressedKeys[BUTTON_OUT_3]) {
 			// Change which output is currently being controlled
 			active_sequencer = 2;
 			active_color = sequencerColors[active_sequencer];
+			// DisplayDriver.setActiveColor(sequencerColors[active_sequencer]); // TODO
+			DisplayDriver.displaySequencer(active_sequencer);
 			active_dac = DacAddr::DACC;
 		}
 		else if (allPressedKeys[BUTTON_OUT_4]) {
 			// Change which output is currently being controlled
 			active_sequencer = 3;
 			active_color = sequencerColors[active_sequencer];
+			// DisplayDriver.setActiveColor(sequencerColors[active_sequencer]); // TODO
+			DisplayDriver.displaySequencer(active_sequencer);
 			active_dac = DacAddr::DACD;
 		}
 		else if (allPressedKeys[BUTTON_OCT_UP]) {
@@ -214,7 +220,8 @@ void loop()
 
 
 		// Display pressed keys
-		DisplayDriver.displayPressedKeys(allPressedKeys, active_color);
+//		DisplayDriver.displayPressedKeys(allPressedKeys, active_color); // TODO deprecated
+		DisplayDriver.displayAllPressedKeys(allPressedKeys);
 //		TouchDriver.printKeys(newPressedKeys);
 		Serial.println(); Serial.flush();
 		attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
@@ -223,21 +230,15 @@ void loop()
 	if (StateManager.getState() == SequencerState::Play)
 	{
 		if (SeqDriver.updateOutput()) { // TODO: Need to have an array of 4 Sequencer drivers, iterate over them
-			DisplayDriver.step(SeqDriver.getId(), SeqDriver.getThisIndex());
-			// I don't think getId is at all useful
+//			DisplayDriver.step(SeqDriver.getId(), SeqDriver.getThisIndex()); // deprecated
+			DisplayDriver.displayStep(SeqDriver.getId(), SeqDriver.getThisIndex());
 //			DisplayDriver.step(active_sequencer, SeqDriver.getThisIndex());
 		}
 	}
 	else if (StateManager.getState() == SequencerState::Record) {
-		if (millis() > last_blink_time + recording_blink_time) {
-			last_blink_time = millis();
-			// TODO: toggle the play : pause button
-			//	This function is called appropriately, but nothing happens.
-			//  The toggling internal to this function also appears to work, alternating between
-			//  the if and else clauses.
-			//  I think maybe "displayPressedKeys" is getting in the way
-			DisplayDriver.togglePlayPause(active_color);
-		}
+
 	}
+	DisplayDriver.update();
+
 }
 
