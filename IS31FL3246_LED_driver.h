@@ -79,8 +79,8 @@ const uint8_t FREQUENCY_MODE_SELECT = uint8_t( ~(1<<FMS_BIT_HIGH) & (1<<FMS_BIT_
 //const uint8_t RGB_GROUP = 11; // note that in datasheet groups are "1-indexed" where here the groups
 // are zero indexed (this would be group 12 in the datasheet)
 const uint8_t GCCG = 0x12; // start with global current control at fraction of max
-const uint8_t GCCR = 0x40;
-const uint8_t GCCB = 0x40;
+const uint8_t GCCR = 0x25;
+const uint8_t GCCB = 0x35;
 
 struct rgb8_t {
 	uint8_t r;

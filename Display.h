@@ -23,7 +23,7 @@
 
 // Colors
 const rgb8_t OFF_RGB = {0, 0, 0};
-const rgb8_t WHITE_RGB = {90, 90, 90};
+const rgb8_t WHITE_RGB = {180, 180, 180};
 
 const rgb8_t RED_RGB = {255, 0, 0};
 const rgb8_t ORANGE_RGB = {255, 100, 0};
@@ -78,7 +78,7 @@ public:
 	virtual ~Display();
 
 	void begin();
-	bool rainbowLoop(unsigned long display_millis);
+	void rainbowLoopAnimation(unsigned long display_millis);
 	void recordingAnimation(rgb8_t color = WHITE_RGB, bool off = false);
 	void circleOff();
 	void peripheralOff();

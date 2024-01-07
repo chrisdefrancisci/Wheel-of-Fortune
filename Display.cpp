@@ -16,6 +16,7 @@ Display::Display() :
 	circular_led_driver(circular_led_driver_address, sdb_pin, isRGB, is8bit),
 	peripheral_led_driver(peripheral_led_driver_address, sdb_pin, isRGB, is8bit)
 {
+	displaySequencer(0); // TODO: maybe want to pull this into constructor?
 
 }
 
@@ -32,34 +33,13 @@ Display::~Display() {
 void Display::begin() {
 	circular_led_driver.begin();
 	peripheral_led_driver.begin();
-}
 
-/**
- * Creates a cute little rainbow animation. Non-blocking.
- * @param display_millis The time for each step to display
- * @return True if loop cycle has completed, otherwise false.
- */
-bool Display::rainbowLoop(unsigned long display_millis){
-	static unsigned long last_millis = 0;
-	unsigned long this_millis = millis();
-	static int rgbIdx = 0;
-	if (this_millis - last_millis >= display_millis) {
-		last_millis = millis();
+	animation = Animation::RainbowLoop;
 
-		for (int ledIdx = 0; ledIdx < ledLen; ledIdx++) {
-			int rgbCircIdx = ((rgbIdx + ledIdx) >= rgbLen ) ? rgbIdx + ledIdx - rgbLen : rgbIdx + ledIdx;
-			circular_led_driver.writeLed(ledIdx, rgbConsts[rgbCircIdx]);
-			peripheral_led_driver.writeLed(ledIdx, WHITE_RGB);
-		}
-		circular_led_driver.update();
-		peripheral_led_driver.update();
-		rgbIdx++;
-		if (rgbIdx >= rgbLen) {
-			rgbIdx = 0;
-			return true;
-		}
+	while (animation == Animation::RainbowLoop){
+		update();
 	}
-	return false;
+	update();
 }
 
 /**
@@ -149,14 +129,45 @@ void Display::recordingAnimation(rgb8_t color, bool off) {
 		static bool last_on = true; // Used to toggle every call. Initial value starts by turning it off.
 		if (off || last_on) {
 			last_on = false;
-			peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], OFF_RGB);
+			peripheral_default[button2led[BUTTON_PLAY]] = OFF_RGB;
 		}
 		else {
 			last_on = true;
-			peripheral_led_driver.writeLed(button2led[BUTTON_PLAY], color);
+			peripheral_default[button2led[BUTTON_PLAY]] = color;
 		}
-		peripheral_led_driver.update();
+		update_display = true;
 	}
+}
+
+/**
+ * Creates a cute little rainbow animation. Non-blocking.
+ * @param display_millis The time for each step to display
+ * @return True if loop cycle has completed, otherwise false.
+ */
+void Display::rainbowLoopAnimation(unsigned long display_millis){
+	static unsigned long last_millis = 0;
+	unsigned long this_millis = millis();
+	static int rgbIdx = 0;
+	if (this_millis - last_millis >= display_millis) {
+		last_millis = millis();
+
+		for (int ledIdx = 0; ledIdx < ledLen; ledIdx++) {
+			int rgbCircIdx = ((rgbIdx + ledIdx) >= rgbLen ) ? rgbIdx + ledIdx - rgbLen : rgbIdx + ledIdx;
+			circular_default[button2led[ledIdx]] = rgbConsts[rgbCircIdx];
+			if (ledIdx < N_PERIPHERAL_LEDS) {
+				peripheral_default[button2led[N_CIRCLE_LEDS + ledIdx]] = WHITE_RGB;
+			}
+		}
+		rgbIdx++;
+		if (rgbIdx >= rgbLen) {
+			rgbIdx = 0;
+			animation = Animation::None;
+		}
+		else {
+			animation = Animation::RainbowLoop;
+		}
+	}
+	update_display = true;
 }
 
 
@@ -182,6 +193,8 @@ void Display::writeLed(ButtonMap_t button, rgb8_t color) {
  */
 void Display::displayState(SequencerState state) {
 	update_display = true;
+	animation = Animation::None;
+
 	if (state == SequencerState::Play) {
 		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
 			circular_default[i] = OFF_RGB; // No button2led needed when all are the same
@@ -225,6 +238,7 @@ void Display::displayState(SequencerState state) {
 			peripheral_default[i] = OFF_RGB;
 		}
 
+		// Have below block also be under sequencer selection, or disable sequencer selection while recording?
 		if (active_sequencer == 0) {
 			peripheral_default[button2led[BUTTON_OUT_1]] = sequencerColors[active_sequencer];
 		}
@@ -245,6 +259,7 @@ void Display::displayState(SequencerState state) {
 			}
 		}
 
+		animation = Animation::Recording;
 	}
 	else if (state == SequencerState::Error) {
 		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
@@ -263,7 +278,17 @@ void Display::displayState(SequencerState state) {
  * while checking for things like pressed keys, step changes, and animations.
  */
 void Display::update() {
-	char buffer[15]; // TODO: delete
+	// Resolve any animations first
+	if (animation == Animation::Recording){
+		recordingAnimation(key_press_color);
+	}
+	else if (animation == Animation::RainbowLoop) {
+		rainbowLoopAnimation(100);
+	}
+	else {
+		recordingAnimation(key_press_color, true);
+	}
+	// Update display as needed
 	if (!update_display) {
 		return;
 	}
@@ -292,22 +317,13 @@ void Display::update() {
 		uint8_t led_idx = button2led[button_idx];
 		peripheral_current[led_idx] = peripheral_default[led_idx];
 		if (pressedKeys[button_idx]) {
-//			getProgmemString(button_idx, buffer);
-//			Serial.println(buffer); Serial.print(" "); Serial.flush(); Serial.println();
 			peripheral_current[led_idx] = key_press_color;
 		}
 
 	}
-//	circular_led_driver.writeConsecutiveLed(0, circular_current, N_CIRCLE_LEDS); // This function doesn't work!
-	for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++)
-	{
-		circular_led_driver.writeLed(i, circular_current[i]);
-	}
-//	peripheral_led_driver.writeConsecutiveLed(0, peripheral_current, N_PERIPHERAL_LEDS);
-	for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++)
-	{
-		peripheral_led_driver.writeLed(i, peripheral_current[i]);
-	}
+	circular_led_driver.writeConsecutiveLed(0, circular_current, N_CIRCLE_LEDS);
+	peripheral_led_driver.writeConsecutiveLed(0, peripheral_current, N_PERIPHERAL_LEDS);
+
 	circular_led_driver.update();
 	peripheral_led_driver.update();
 }

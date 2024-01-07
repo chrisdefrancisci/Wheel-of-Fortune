@@ -49,10 +49,6 @@ void setup()
 	// Peripheral setups
 	DisplayDriver.begin();
 
-	while (!DisplayDriver.rainbowLoop(100)){
-
-	}
-
 	// Initialize device, set EEPROM if needed
 	TouchDriver.begin();
 
@@ -61,9 +57,8 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
 
 	Serial.println("Setup complete.");
-	DisplayDriver.circleOff();
-	DisplayDriver.peripheralOff();
 	DisplayDriver.displayState(SequencerState::Stop);
+	DisplayDriver.update();
 
 
 	SeqDriver.begin();

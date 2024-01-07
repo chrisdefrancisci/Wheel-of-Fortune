@@ -217,7 +217,7 @@ template <typename T> CommStatus IS31FL3246_LED_driver::writeLed(uint8_t index, 
 
 /**
  * Template function to write to multiple LEDs. LEDs are in G, R, B order from the IC.
- * TODO: test this function (hasn't been tested at all)
+ * TODO:
  * @tparam T
  * @param index: For single LED mode, this is the index of the LED. For RGB LED mode, this is the RGB LED group.
  * @param pPwm: The pointer to the PWM values to write
@@ -225,15 +225,37 @@ template <typename T> CommStatus IS31FL3246_LED_driver::writeLed(uint8_t index, 
  * @return: The status of the transmission
  */
 template <typename T> CommStatus IS31FL3246_LED_driver::writeConsecutiveLed(uint8_t index, T* pPwm, uint8_t length) {
-	Wire.beginTransmission(_led_driver_address); // peripheral address
+	CommStatus wire_status = CommStatus::Success;
+	int16_t writes_remaining = length;
+	uint8_t write_size = 2;
+	uint8_t writes_per_loop = BUFFER_LENGTH / 2;
+	uint8_t start_idx = HFP_L_DUTY_REG + index*HFP_REG_SIZE;
 	if (_isRGB){
-		index *=3;
+		index *= 3; // R + G + B = iterating over indices 3x as fast as individual leds
+		writes_per_loop /= 3;
+		write_size = 6;
 	}
-	Wire.write(HFP_L_DUTY_REG + index*HFP_REG_SIZE); // register address
-	for(int i = 0; i < length; i++){
-		writeData(*(pPwm+i));
+
+	while (writes_remaining > 0) {
+		Wire.beginTransmission(_led_driver_address); // peripheral address
+		Wire.write(start_idx); // register address
+		for(int i = 0; i < writes_per_loop; i++){
+			writeData(*(pPwm+i));
+		}
+		wire_status = (CommStatus)Wire.endTransmission();
+		if (wire_status != CommStatus::Success) {
+			return printWireStatus(wire_status);
+		}
+
+		// Adjust indices for next loop
+		pPwm += writes_per_loop;
+		writes_remaining -= writes_per_loop;
+		start_idx += writes_per_loop * write_size;
+		if (writes_remaining < writes_per_loop) {
+			writes_per_loop = writes_remaining;
+		}
 	}
-	return printWireStatus(Wire.endTransmission());
+	return printWireStatus(wire_status);
 }
 
 
