@@ -83,7 +83,19 @@ void loop()
 	Bitfield<QT1245_DETECT_BYTES> allPressedKeys;
 	Bitfield<QT1245_DETECT_BYTES> newPressedKeys;
 	// Visual indicators
-	static uint32_t last_blink_time = 0;
+	static uint32_t last_time = 0;
+	if (millis() > last_time + 5000) { // TODO: delete this
+		uint8_t bpm = SeqDriver.getBPM();
+		if (bpm > 120) {
+			bpm = 60;
+		}
+		else {
+			bpm *= 2;
+		}
+		SeqDriver.setBPM(bpm);
+
+		last_time = millis();
+	}
 
 
 	Serial.flush();

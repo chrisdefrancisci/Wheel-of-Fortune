@@ -29,7 +29,7 @@ SequencerDriver::SequencerDriver(AD5695* dac_driver) :
 //	Serial.print("Gate pin port = 0x"); Serial.print((uint8_t)gate_pin_port, HEX); Serial.print(" vs pGatePortArray[0] = 0x");
 //	Serial.println((uint8_t)pGatePortArray[0], HEX);
 	for (uint8_t i = 0; i < max_length; i++) {
-		setGateLength(i, i);
+		setGateLength(i, i+1); // TODO: should probably initialize to something more reasonable, like 11 or 0.
 	}
 }
 
@@ -51,14 +51,13 @@ void SequencerDriver::begin(void){
 	// Not exactly sure if this is the right way to think about setting interrupt time, but
 	// If our max allowable bpm is 240, and we want to have 10 "tics" of resolution between 239
 	// and 240, then
-	// 1 / (240 bpm / 60 s/min) - 1 / (239 bpm / 60 s/min) = 0.00105s = 952 Hz ~ 1kHz
-	// divide by 10, we want 0.0001s tic time for our counters
+	// 1 / (240 bpm / 60 s/min) - 1 / (239 bpm / 60 s/min) = 0.00105s = 952 Hz minimum, let's use 1kHz
+	// divide by 10, we want 0.0001s tic time for our counters -> 10 kHz resolution
 	// And our lowest bpm is 40, corresponding to maximum time of
-	// 60 s/min / 40 bpm = 1.5s = 1428.6 ticks @ 0.00105 ticks/s, so a int16_t should be large enough
-	// 		I don't think that actually matters for the intterupt - the uint16_t counter is needed for the handler, but the
-	//		interrupt will always execute at 1kHz?
+	// 60 s/min / 40 bpm = 1.5s = 15000 ticks @ 0.0001 ticks/s, so a int16_t should be large enough
+
 	// compare match register = 16,000,000 Hz/ (prescalar * 1,000 Hz) -1, let prescalar = 64
-	// compare match register = 16e6 Hz / (64  * 1e3 Hz) - 1 = 249
+	// compare match register = 16e6 Hz / (64  * 1e4 Hz) - 1 = 24
 
 	// interrupt frequency (Hz) = (clock speed 16,000,000Hz) / (prescaler * (compare match register + 1))
 
@@ -68,7 +67,7 @@ void SequencerDriver::begin(void){
 	TCCR1B = 0; // Clear register
 	TCNT1 = 0; // initialize counter value to 0
 	// Set compare match register
-	OCR1A = 249; //
+	OCR1A = 24; //
 	TCCR1B |= (1 << WGM12); // Turn on CTC? mode
 //	TCCR1B |= (1 << CS12) | (1 << CS10); // Set 2 bits for 1024 prescalar
 	TCCR1B |= (1 << CS11) | (1 << CS10); // Set 2 bits for 64 prescalar
@@ -81,6 +80,43 @@ void SequencerDriver::begin(void){
 	*pGate0Setup |= gate0; // Set to output (1)
 	*pGate0Port &= ~gate0; // Set low
 
+}
+
+/**
+ * Sets sequencer BPM.
+ *
+ * Setting the BPM requires updating the number of tics the timing interrupt should occur,
+ * stored in max_tic_count. This follows the function:
+ *
+ * max_tic_count = (60 s / min) / BPM * 10 kHz
+ *
+ * Where 10kHz comes from setting the prescalar and compare match register in SequencerDriver::begin().
+ *
+ * @param bpm Beats per minute
+ */
+void SequencerDriver::setBPM(uint8_t bpm_) {
+	// Enforce arbitrary min and max BPM
+	if (bpm_ < 40) {
+		bpm = 40;
+	}
+	else if (bpm_ > 240) {
+		bpm = 240;
+	}
+	else {
+		bpm = bpm_;
+	}
+	uint16_t last_max_tic_count = max_tic_count;
+	max_tic_count = uint16_t(60.0 *  10e3 / float(bpm));
+	float tic_ratio = float(max_tic_count) / float(last_max_tic_count);
+
+	tic_count = 0;
+	play_flag = true;
+	stop_flag = false;
+	for (uint8_t index = 0; index < max_length; index ++){
+		Serial.print("Tic length going from "); Serial.print(data[index].tic_length);
+		data[index].tic_length = uint16_t(float(data[index].tic_length) * tic_ratio);
+		Serial.println(" to "); Serial.println(data[index].tic_length);
+	}
 }
 
 /**

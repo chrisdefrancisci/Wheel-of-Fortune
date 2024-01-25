@@ -36,8 +36,8 @@ public:
 	SequencerDriver(AD5695* dac_driver);
 	virtual ~SequencerDriver();
 	void begin();
-	void setBPM(uint8_t bpm);
-	uint8_t getBPM();
+	void setBPM(uint8_t bpm_);
+	inline uint8_t getBPM(){ return bpm; };
 
 	inline static uint8_t getSequencerCount() { return sequencer_count; }
 	static void (*const HANDLERS[N_SEQUENCERS])();
@@ -104,16 +104,16 @@ private:
 	uint8_t this_index = length-1;
 
 	// variables used in ISR;
-	volatile bool play_flag;
-	volatile bool stop_flag;
+	volatile bool play_flag = true;
+	volatile bool stop_flag = false;
 	/// Number of times interrupt is hit
 	volatile uint16_t tic_count = 0;
 	/// Number of interrupt hits that correspond to gate on / note playing (tic_length_on) / (max_tic_count) is
 	/// gate length from 0 to 1
 	volatile uint16_t tic_length_on = 250;
-	/// Number of interrupt hits for each step. max_tic_count = 60 s/min / bpm * 1kHz
-	/// Ex: bpm = 120 -> 0.5s, interrupt freq = 1kHz = 0.001s, max_tic_count = 60 s/min / 120bpm * 1kHz = 500 ticks
-	volatile uint16_t max_tic_count = 500;
+	/// Number of interrupt hits for each step. max_tic_count = 60 s/min / bpm * 10kHz
+	/// Ex: bpm = 120 -> 0.5s, interrupt freq = 10kHz = 0.0001s, max_tic_count = 60 s/min / 120bpm * 10kHz = 5000 ticks
+	volatile uint16_t max_tic_count = 5000;
 
 
 };
