@@ -28,6 +28,9 @@ SequencerDriver::SequencerDriver(AD5695* dac_driver) :
 //	Serial.print("sequencer_id = "); Serial.println(sequencer_id);
 //	Serial.print("Gate pin port = 0x"); Serial.print((uint8_t)gate_pin_port, HEX); Serial.print(" vs pGatePortArray[0] = 0x");
 //	Serial.println((uint8_t)pGatePortArray[0], HEX);
+	for (uint8_t i = 0; i < max_length; i++) {
+		setGateLength(i, i);
+	}
 }
 
 /**
@@ -106,11 +109,24 @@ uint16_t SequencerDriver::getDacValue(uint8_t note, uint8_t octave) {
 	return pgm_read_word_near(NOTES2DAC + index);
 }
 
+void SequencerDriver::setGateLength(uint8_t index, uint8_t gate_length_fraction) {
+	// Buttons are on 0 - 11 scale, but articulation will be on 1 - 12 scale, with 0 set using other I/O.
+	if (gate_length_fraction > BUTTON_STEP_11 + 1) {
+		gate_length_fraction = BUTTON_STEP_11 + 1;
+	}
+	if (gate_length_fraction == 0) {
+		data[index].tic_length = 0;
+	}
+	else {
+		data[index].tic_length = max_tic_count * gate_length_fraction / (BUTTON_STEP_11 + 1);
+	}
+}
+
 /**
  * Updates the output of a single sequencer. Changes CV out and turns gate on and off.
  * @return True if output step has changed
  */
-bool SequencerDriver::updateOutput(void) {
+bool SequencerDriver::updateOutput(SequencerData &data) {
 	// If there is a new step, output voltage and turn on gate
 	if (play_flag) {
 		play_flag = false;
@@ -120,14 +136,24 @@ bool SequencerDriver::updateOutput(void) {
 			this_index = 0;
 		}
 		// Set outputs
-		DacDriver->writeVout(dac_addr, getThisValue());
-		*gate_pin_port |= gate_mask; // turn on gate
+		DacDriver->writeVout(dac_addr, getThisPitch());
+		tic_length_on = getThisGateLength();
+//		*gate_pin_port |= gate_mask; // turn on gate
+		if (tic_length_on > 0) {
+			gateOn();
+		}
+		data.step = this_index;
+		data.gate_on = true;
 		return true;
 	}
 	// If tick count is above threshold, turn off gate
 	else if (stop_flag) {
 		stop_flag = false; // TODO: do we want to make it so stop flag is only enabled once per play flag?
-		*gate_pin_port &= ~(gate_mask);
+//		*gate_pin_port &= ~(gate_mask);
+		gateOff();
+		data.step = this_index;
+		data.gate_on = false;
+		return true;
 	}
 	return false;
 }
@@ -140,13 +166,13 @@ bool SequencerDriver::updateOutput(void) {
  * within ISR
  * TODO is next index needed?
  */
-void SequencerDriver::step(void){
+void SequencerDriver::tic(void){
 	tic_count++;
 	if (tic_count >= max_tic_count) {
 		tic_count = 0;
 		play_flag = true;
 	}
-	else if (tic_count > tic_length_on) {
+	else if (tic_count == tic_length_on) {
 		stop_flag = true;
 	}
 }

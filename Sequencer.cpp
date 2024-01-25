@@ -76,13 +76,15 @@ void loop()
 	static uint8_t active_sequencer = 0;
 	static DacAddr active_dac = DacAddr::DACA;
 	static rgb8_t active_color = sequencerColors[active_sequencer];
+	static uint8_t gate_length_fraction = 11; // Default to notes that are full length but not slur
+
 
 	// Current user input
 	Bitfield<QT1245_DETECT_BYTES> allPressedKeys;
 	Bitfield<QT1245_DETECT_BYTES> newPressedKeys;
-
 	// Visual indicators
 	static uint32_t last_blink_time = 0;
+
 
 	Serial.flush();
 	// transfer data from device
@@ -150,7 +152,9 @@ void loop()
 					// TODO: replace with array of drivers
 					SeqDriver.gateOn();
 					// record the note
-					SeqDriver.setThisNote((uint8_t)TouchDriver.getChangedNote()); // TODO: replace with array of drivers
+					SeqDriver.setThisPitch((uint8_t)TouchDriver.getChangedNote()); // TODO: replace with array of drivers
+					// TODO: replace with array of drivers, replace with current articulation settings
+//					SeqDriver.setThisGateLength(gate_length_fraction); // TODO: might need a more intuitive way of describing this, since numbers from 0-12 aren't really a fraction
 					SeqDriver.incrementIndex();
 					if (SeqDriver.getThisIndex() == 0) {
 						StateManager.setState(SequencerState::Stop);
@@ -224,9 +228,11 @@ void loop()
 
 	if (StateManager.getState() == SequencerState::Play)
 	{
-		if (SeqDriver.updateOutput()) { // TODO: Need to have an array of 4 Sequencer drivers, iterate over them
+		SequencerData seq_data;
+		if (SeqDriver.updateOutput(seq_data)) { // TODO: Need to have an array of 4 Sequencer drivers, iterate over them
 //			DisplayDriver.step(SeqDriver.getId(), SeqDriver.getThisIndex()); // deprecated
-			DisplayDriver.displayStep(SeqDriver.getId(), SeqDriver.getThisIndex());
+			DisplayDriver.displayStep(SeqDriver.getId(), seq_data.step);
+			DisplayDriver.displayGate(SeqDriver.getId(), seq_data.gate_on);
 //			DisplayDriver.step(active_sequencer, SeqDriver.getThisIndex());
 		}
 	}

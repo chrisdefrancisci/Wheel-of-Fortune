@@ -19,6 +19,18 @@ constexpr uint8_t N_SEQUENCERS = 4; // 4 sequencers, for 4 outputs
 constexpr uint8_t N_OCTAVES = 5; // 5 octave range
 constexpr uint8_t OCTAVES_2_NOTES = 11;
 
+typedef struct SequencerData {
+	uint8_t step = UINT8_MAX;
+	bool gate_on = false;
+} SequencerData_t;
+
+typedef struct NoteData {
+	/** The note value, converted to DAC using DAC_14_bit_notes.h */
+	uint16_t dac_value = 0;
+	/** The gate length, converted into interrupt tics */
+	uint16_t tic_length = 0;
+} NoteData_t;
+
 class SequencerDriver {
 public:
 	SequencerDriver(AD5695* dac_driver);
@@ -30,7 +42,7 @@ public:
 	inline static uint8_t getSequencerCount() { return sequencer_count; }
 	static void (*const HANDLERS[N_SEQUENCERS])();
 //	static void (*update)(); // TODO: Assign function such that all outputs update at once
-	bool updateOutput(void);
+	bool updateOutput(SequencerData &data);
 
 	uint16_t getDacValue(uint8_t note);
 	uint16_t getDacValue(uint8_t note, uint8_t octave);
@@ -43,9 +55,12 @@ public:
 	inline uint8_t getSequenceLength() {return length;}
 	inline void setSequenceLength(uint8_t len) { length = len;}
 	inline uint8_t getId() { return sequencer_id; } // I don't think this is useful??
-	inline void setNote(uint8_t index, uint8_t note){ data[index] = getDacValue(note); }
-	inline void setThisNote(uint8_t note){ data[this_index] = getDacValue(note); }
-	inline uint16_t getThisValue(){ return data[this_index]; }
+	inline void setPitch(uint8_t index, uint8_t pitch){ data[index].dac_value = getDacValue(pitch); }
+	inline void setThisPitch(uint8_t pitch){ data[this_index].dac_value = getDacValue(pitch); }
+	void setGateLength(uint8_t index, uint8_t gate_length_fraction);
+	void setThisGateLength(uint8_t gate_length_fraction){ setGateLength(this_index, gate_length_fraction); };
+	inline uint16_t getThisPitch(){ return data[this_index].dac_value; }
+	inline uint16_t getThisGateLength(){ return data[this_index].tic_length; }
 	inline void incrementOctave(){ if(octave < N_OCTAVES - 1) octave++; }
 	inline void decrementOctave(){ if(octave > 0) octave--; }
 	uint8_t getOctave(){ return octave; }
@@ -61,10 +76,10 @@ private:
 
 	template <uint8_t SEQUENCER> static void handler() {
 		if (instances[SEQUENCER] != NULL) { // TODO: prevent dynamic creation of SequencerDrivers so this becomes irrelevant.
-			instances[SEQUENCER]->step();
+			instances[SEQUENCER]->tic();
 		}
 	}
-	void step();
+	void tic();
 	static uint8_t sequencer_count;
 	static constexpr uint8_t max_length = 12;
 
@@ -83,7 +98,7 @@ private:
 	uint8_t sequencer_id;
 	uint8_t bpm = 120;
 
-	uint16_t data[max_length] = {0};
+	NoteData data[max_length];
 	uint8_t octave = 0;
 	uint8_t length = 12;
 	uint8_t this_index = length-1;

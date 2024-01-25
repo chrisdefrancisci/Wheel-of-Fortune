@@ -68,13 +68,35 @@ void Display::peripheralOff() {
  * @param[in] this_index The current index to write.
  */
 void Display::step(uint8_t sequencer_id, uint8_t this_index) {
-	// Turn off previous LED, save current LED as previous
-//	circular_led_driver.writeLed(last_LED[sequencer_id], OFF_RGB);
-//	last_LED[sequencer_id] = button2led[this_index];
-//	circular_led_driver.writeLed(button2led[this_index], sequencerColors[sequencer_id]);
-//	circular_led_driver.update();
 	sequencer_step[sequencer_id] = this_index;
 }
+
+/**
+ *
+ * @param sequencer
+ * @param on
+ */
+void Display::displayGate(uint8_t sequencer, bool on) {
+		rgb8_t color = OFF_RGB;
+		sequencer = safe_sequencer(sequencer);
+
+		if (on) {
+			color = sequencerColors[sequencer];
+		}
+		if (sequencer == 0){
+			peripheral_default[button2led[BUTTON_OUT_1]] = color;
+		}
+		else if (sequencer == 1){
+			peripheral_default[button2led[BUTTON_OUT_2]] = color;
+		}
+		else if (sequencer == 2){
+			peripheral_default[button2led[BUTTON_OUT_3]] = color;
+		}
+		else if (sequencer == 3){
+			peripheral_default[button2led[BUTTON_OUT_4]] = color;
+		}
+		update_display = true;
+	}
 
 /**
  * Uses the RGB LEDs to light up the panel, displaying the keys that are currently pressed,

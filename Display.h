@@ -91,22 +91,29 @@ public:
 		pressedKeys = pressedKeys_;
 		update_display = true;
 	}
-	/** Set current sequencer in order to set sequencer color. */
+
+	/**
+	 * Sets the current sequencer so that color is used for button presses
+	 * @param sequencer The index of the sequencer
+	 */
 	inline void displaySequencer(uint8_t sequencer) {
-		if (sequencer >= N_SEQUENCERS) { // unsigned int, so it will never be less than 0
-			sequencer = N_SEQUENCERS - 1;
-		}
-		active_sequencer = sequencer;
+		active_sequencer = safe_sequencer(sequencer);
 		key_press_color = sequencerColors[active_sequencer];
 		update_display = true;
 	}
+
+	/**
+	 *
+	 * @param sequencer
+	 * @param step
+	 */
 	inline void displayStep(uint8_t sequencer, uint8_t step) {
-		if (sequencer >= N_SEQUENCERS) { // unsigned int, so it will never be less than 0
-			sequencer = N_SEQUENCERS - 1;
-		}
+		sequencer = safe_sequencer(sequencer);
 		sequencer_step[sequencer] = step;
 		update_display = true;
 	}
+
+	void displayGate(uint8_t sequencer, bool on);
 	void color(rgb8_t color); // TODO
 	void color(uint8_t sequencer_id); // TODO
 	void step(uint8_t sequencer_id, uint8_t this_index);
@@ -114,6 +121,15 @@ public:
 	void writeLed(ButtonMap_t button, rgb8_t color);
 
 private:
+
+	inline uint8_t safe_sequencer(uint8_t seq) {
+		if (seq >= N_SEQUENCERS) {
+			// unsigned int, so it will never be less than 0
+			seq = N_SEQUENCERS - 1;
+		}
+		return seq;
+	}
+
 	IS31FL3246_LED_driver circular_led_driver; // Driver for LEDs in a circle, with address b0110 000x
 	IS31FL3246_LED_driver peripheral_led_driver; // Driver for LEDs in the corner, with address b0110 011x
 	uint8_t last_LED[N_SEQUENCERS]; // Keep track of which LEDs need to be cleared on the next sequencer step
