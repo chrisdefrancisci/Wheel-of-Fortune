@@ -16,12 +16,11 @@
 #include "SequencerDriver.h"
 #include "AD5695.h"
 #include "Display.h"
-//#include "AT42_QT1245_Touch_driver.h"
 #include "CapacitiveButtons.h"
 #include "SPI.h"
 #include "StateMachine.h"
 #include "Hardware.h"
-
+#include "RotaryEncoder.h"
 
 //end of add your includes here
 

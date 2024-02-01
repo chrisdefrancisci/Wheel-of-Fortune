@@ -14,6 +14,8 @@ Display DisplayDriver;
 AD5695 DacDriver(DAC_DRIVER_ADDRESS);
 SequencerDriver	SeqDriver(&DacDriver); // TODO: This will only create the first sequencer, I need to create 3 more
 StateMachine StateManager;
+RotaryEncoder RotEncoder(enc_a, enc_b, enc_sw_clock);
+
 
 //AT42_QT1245_Touch_driver TouchDriver(CHIP_SELECT_PIN, NCHANGE_PIN, NDRDY_PIN, ARDUINO_SELECT_PIN);
 CapacitiveButtons TouchDriver(CHIP_SELECT_PIN, NCHANGE_PIN, NDRDY_PIN, ARDUINO_SELECT_PIN, &DisplayDriver);
@@ -62,6 +64,7 @@ void setup()
 
 
 	SeqDriver.begin();
+	RotEncoder.begin();
 
 }
 
@@ -84,17 +87,21 @@ void loop()
 	Bitfield<QT1245_DETECT_BYTES> newPressedKeys;
 	// Visual indicators
 	static uint32_t last_time = 0;
-	if (millis() > last_time + 5000) { // TODO: delete this
-		uint8_t bpm = SeqDriver.getBPM();
-		if (bpm > 120) {
-			bpm = 60;
-		}
-		else {
-			bpm *= 2;
-		}
-		SeqDriver.setBPM(bpm);
-
+	if (millis() > last_time + 3000) { // TODO: delete this
 		last_time = millis();
+//		uint8_t bpm = SeqDriver.getBPM();
+//		if (bpm > 120) {
+//			bpm = 60;
+//		}
+//		else {
+//			bpm *= 2;
+//		}
+//		SeqDriver.setBPM(bpm);
+//
+		int16_t diff = RotEncoder.readEncoder();
+		if (diff != 0) {
+			Serial.println(diff);
+		}
 	}
 
 
@@ -252,6 +259,5 @@ void loop()
 
 	}
 	DisplayDriver.update();
-
 }
 

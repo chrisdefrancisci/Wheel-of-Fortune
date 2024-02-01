@@ -39,7 +39,7 @@ SequencerDriver::SequencerDriver(AD5695* dac_driver) :
  */
 SequencerDriver::~SequencerDriver(void) {
 	instances[sequencer_id] = NULL;
-	sequencer_count--;
+//	sequencer_count--;
 }
 
 /**
@@ -73,10 +73,9 @@ void SequencerDriver::begin(void){
 	TCCR1B |= (1 << CS11) | (1 << CS10); // Set 2 bits for 64 prescalar
 	TIMSK1 |= (1 << OCIE1A); // Enable timer compare interrupt
 	sei(); // Enable interrupts
+	// TODO enable or disable interrupts to match play / pause. Don't want to start playing in the middle of a cycle.
 
 	// Initialize gate pin as output, set low
-//	*gate_settings_port |= gate_mask;
-//	*gate_pin_port &= ~gate_mask;
 	*pGate0Setup |= gate0; // Set to output (1)
 	*pGate0Port &= ~gate0; // Set low
 
