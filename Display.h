@@ -57,7 +57,9 @@ const bool isRGB = true;
 const bool is8bit = true;
 const uint8_t ledLen = 12;
 
-const uint16_t RECORDING_BLINK_TIME = 500; /** ms, the amount of time on/off for recording blinking animation */
+// Animations
+const uint32_t RECORDING_BLINK_TIME = 500; /** ms, the amount of time on/off for recording blinking animation */
+const uint32_t GATE_LENGTH_TIME = 500; /** ms, the amount of time to display gate length before going back to normal display */
 
 union buttons { // TODO
 	rgb8_t array[N_CIRCLE_LEDS + N_PERIPHERAL_LEDS];
@@ -66,11 +68,18 @@ union buttons { // TODO
 	};
 };
 
-enum class Animation : uint8_t {
-	None,
-	RainbowLoop,
-	Recording
-};
+/**
+ * Union with anonymous bitfield that allows for examination of individual animation flags or existence of any animation flags
+ */
+typedef union {
+	struct {
+		uint8_t rainbow_loop : 1;
+		uint8_t recording : 1;
+		uint8_t gate_length: 1;
+		uint8_t bpm : 1;
+	};
+	uint8_t any;
+} Animation;
 
 class Display {
 public:
@@ -80,6 +89,13 @@ public:
 	void begin();
 	void rainbowLoopAnimation(unsigned long display_millis);
 	void recordingAnimation(rgb8_t color = WHITE_RGB, bool off = false);
+	void setGateLengthAnimation(int16_t gate_length_ = N_CIRCLE_LEDS);
+	inline void setBpmAnimation(uint8_t bpm_ = 120) {
+		bpm = bpm_;
+//		animation = Animation::Bpm;
+	}
+	void gateLengthAnimation();
+	void bpmAnimation();
 	void circleOff();
 	void peripheralOff();
 
@@ -140,12 +156,17 @@ private:
 	bool sequencer_gate[N_SEQUENCERS] = { false };
 	rgb8_t circular_default[N_CIRCLE_LEDS];
 	rgb8_t peripheral_default[N_PERIPHERAL_LEDS];
-	rgb8_t circular_current[N_CIRCLE_LEDS]; // TODO determine if needed
-	rgb8_t peripheral_current[N_PERIPHERAL_LEDS]; // TODO determine if needed
+	rgb8_t circular_current[N_CIRCLE_LEDS];
+	rgb8_t peripheral_current[N_PERIPHERAL_LEDS];
 	rgb8_t key_press_color = WHITE_RGB;
 	uint8_t active_sequencer = 0;
 	Bitfield<QT1245_DETECT_BYTES> pressedKeys;
-	Animation animation = Animation::None;
+	SequencerState state;
+
+	Animation animation;
+	uint32_t animation_start = 0;
+	uint8_t gate_length = 0;
+	uint8_t bpm = 0;
 
 
 };

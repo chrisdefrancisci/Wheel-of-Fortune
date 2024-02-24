@@ -36,8 +36,6 @@ public:
 	SequencerDriver(AD5695* dac_driver);
 	virtual ~SequencerDriver();
 	void begin();
-	void setBPM(uint8_t bpm_);
-	inline uint8_t getBPM(){ return bpm; };
 
 	inline static uint8_t getSequencerCount() { return sequencer_count; }
 	static void (*const HANDLERS[N_SEQUENCERS])();
@@ -48,6 +46,8 @@ public:
 	uint16_t getDacValue(uint8_t note, uint8_t octave);
 
 	// Setters and Getters
+	void setBPM(int16_t bpm_);
+	inline uint8_t getBPM(){ return bpm; };
 	inline uint8_t getThisIndex(){ return this_index; }
 	inline void restartIndex(){ this_index = 0; }
 	inline void incrementIndex(){ this_index = (this_index < length - 1) ? this_index + 1 : 0; }

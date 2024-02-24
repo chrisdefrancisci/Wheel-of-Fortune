@@ -34,9 +34,9 @@ void Display::begin() {
 	circular_led_driver.begin();
 	peripheral_led_driver.begin();
 
-	animation = Animation::RainbowLoop;
+	animation.rainbow_loop = 1;
 
-	while (animation == Animation::RainbowLoop){
+	while (animation.rainbow_loop){
 		update();
 	}
 	update();
@@ -183,15 +183,53 @@ void Display::rainbowLoopAnimation(unsigned long display_millis){
 		rgbIdx++;
 		if (rgbIdx >= rgbLen) {
 			rgbIdx = 0;
-			animation = Animation::None;
+			animation.rainbow_loop = 0;
 		}
 		else {
-			animation = Animation::RainbowLoop;
+			animation.rainbow_loop = 1;
 		}
 	}
 	update_display = true;
 }
 
+void Display::setGateLengthAnimation(int16_t gate_length_) {
+		update_display = true;
+		if (gate_length_ > N_CIRCLE_LEDS) {
+			gate_length = N_CIRCLE_LEDS;
+		}
+		else if (gate_length_ < 0) {
+			gate_length = 0;
+		}
+		else {
+			gate_length = gate_length_;
+		}
+		animation_start = millis();
+		animation.gate_length = 1; // Set bitfield
+	}
+
+void Display::gateLengthAnimation() {
+	uint32_t this_millis = millis();
+	if ( this_millis - animation_start >= GATE_LENGTH_TIME) {
+		animation.gate_length = 0;
+		displayState(state); // Reset display back to state
+	}
+	else {
+		for (int ledIdx = 0; ledIdx < ledLen; ledIdx++) {
+			if (ledIdx < gate_length) {
+				circular_default[button2led[ledIdx]] = WHITE_RGB;
+			}
+			else {
+				circular_default[button2led[ledIdx]] = OFF_RGB;
+			}
+		}
+//		update_display = true;
+	}
+
+}
+
+void Display::bpmAnimation() {
+
+}
 
 /**
  *
@@ -213,9 +251,14 @@ void Display::writeLed(ButtonMap_t button, rgb8_t color) {
  *
  * @param state The current state - determines what the untouched display is.
  */
-void Display::displayState(SequencerState state) {
+void Display::displayState(SequencerState state_) {
+	// Force update when state is changed. In other cases (i.e., end of animation) update may or may not be desired
+//	if (state != state_) {
+//		update_display = true;
+//	}
 	update_display = true;
-	animation = Animation::None;
+	state = state_;
+//	animation.any = 0; // TODO: this seems like an ugly way to do this, display state not exclusive with animations
 
 	if (state == SequencerState::Play) {
 		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
@@ -224,6 +267,8 @@ void Display::displayState(SequencerState state) {
 		for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++) {
 			peripheral_default[i] = OFF_RGB;
 		}
+
+		animation.recording = 0;
 	}
 	else if (state == SequencerState::Stop) {
 		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
@@ -245,6 +290,8 @@ void Display::displayState(SequencerState state) {
 		for (uint8_t i = 0; i < N_SEQUENCERS; i++) {
 			sequencer_step[i] = UINT8_MAX;
 		}
+
+		animation.recording = 0;
 	}
 	else if (state == SequencerState::Record) {
 		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
@@ -281,7 +328,7 @@ void Display::displayState(SequencerState state) {
 			}
 		}
 
-		animation = Animation::Recording;
+		animation.recording = 1;
 	}
 	else if (state == SequencerState::Error) {
 		for (uint8_t i = 0; i < N_CIRCLE_LEDS; i++) {
@@ -290,6 +337,8 @@ void Display::displayState(SequencerState state) {
 		for (uint8_t i = 0; i < N_PERIPHERAL_LEDS; i++) {
 			peripheral_default[i] = RED_RGB;
 		}
+
+		animation.recording = 0;
 	}
 }
 
@@ -300,15 +349,25 @@ void Display::displayState(SequencerState state) {
  * while checking for things like pressed keys, step changes, and animations.
  */
 void Display::update() {
-	// Resolve any animations first
-	if (animation == Animation::Recording){
-		recordingAnimation(key_press_color);
-	}
-	else if (animation == Animation::RainbowLoop) {
-		rainbowLoopAnimation(100);
+	// Resolve any animations
+	if (animation.any){
+		if (animation.recording){
+			recordingAnimation(key_press_color);
+		}
+		if (animation.rainbow_loop) {
+			rainbowLoopAnimation(100);
+		}
+		if (animation.gate_length) {
+			gateLengthAnimation();
+		}
+		if (animation.bpm) {
+			bpmAnimation();
+		}
 	}
 	else {
+		// Turn off any remaining animation effects
 		recordingAnimation(key_press_color, true);
+		// TODO: do I need to call displayState after this? Then I should save the state...
 	}
 	// Update display as needed
 	if (!update_display) {

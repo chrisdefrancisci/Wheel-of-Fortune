@@ -79,7 +79,7 @@ void loop()
 	static uint8_t active_sequencer = 0;
 	static DacAddr active_dac = DacAddr::DACA;
 	static rgb8_t active_color = sequencerColors[active_sequencer];
-	static uint8_t gate_length_fraction = 11; // Default to notes that are full length but not slur
+	static int16_t gate_length_fraction = 10; // Default to notes that are full length but not slur
 
 
 	// Current user input
@@ -106,7 +106,9 @@ void loop()
 
 
 	Serial.flush();
-	// transfer data from device
+
+
+	// Read from capactivie touch driver if there is a new touch ---------------
 	if(new_touch)
 	{
 		Serial.print("New touch detected: ");
@@ -173,10 +175,11 @@ void loop()
 					// record the note
 					SeqDriver.setThisPitch((uint8_t)TouchDriver.getChangedNote()); // TODO: replace with array of drivers
 					// TODO: replace with array of drivers, replace with current articulation settings
-//					SeqDriver.setThisGateLength(gate_length_fraction); // TODO: might need a more intuitive way of describing this, since numbers from 0-12 aren't really a fraction
+					SeqDriver.setThisGateLength(gate_length_fraction); // TODO: might need a more intuitive way of describing this, since numbers from 0-12 aren't really a fraction
 					SeqDriver.incrementIndex();
 					if (SeqDriver.getThisIndex() == 0) {
 						StateManager.setState(SequencerState::Stop);
+						DisplayDriver.displayState(SequencerState::Stop);
 					}
 				}
 				else {
@@ -245,6 +248,31 @@ void loop()
 		attachInterrupt(digitalPinToInterrupt(NCHANGE_PIN), nCHANGE_ISR, LOW);
 	} // end if new touch
 
+	// Read from rotary encoder ------------------------------------------------
+	int16_t rotary_read = RotEncoder.readEncoder();
+	if (rotary_read != 0) {
+
+		if (StateManager.getState() == SequencerState::Stop)
+		{
+			SeqDriver.setBPM(SeqDriver.getBPM() + rotary_read);
+			DisplayDriver.setBpmAnimation(SeqDriver.getBPM());
+		}
+		else if (StateManager.getState() == SequencerState::Record)
+		{
+			gate_length_fraction += rotary_read;
+			SeqDriver.setThisGateLength(gate_length_fraction);
+			DisplayDriver.setGateLengthAnimation(gate_length_fraction);
+		}
+	}
+
+	// Read from clock in / rotary encoder button ------------------------------
+
+
+	// Read from CV inputs
+	// TODO: use CV to set gate length -----------------------------------------
+	// TODO: determine other CV usage
+
+	// Update visual, CV, gate outputs -----------------------------------------
 	if (StateManager.getState() == SequencerState::Play)
 	{
 		SequencerData seq_data;

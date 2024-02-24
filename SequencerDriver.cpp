@@ -93,7 +93,7 @@ void SequencerDriver::begin(void){
  *
  * @param bpm Beats per minute
  */
-void SequencerDriver::setBPM(uint8_t bpm_) {
+void SequencerDriver::setBPM(int16_t bpm_) {
 	// Enforce arbitrary min and max BPM
 	if (bpm_ < 40) {
 		bpm = 40;
@@ -112,9 +112,8 @@ void SequencerDriver::setBPM(uint8_t bpm_) {
 	play_flag = true;
 	stop_flag = false;
 	for (uint8_t index = 0; index < max_length; index ++){
-		Serial.print("Tic length going from "); Serial.print(data[index].tic_length);
+		// Translate note length for each note depending ratio of old bpm to new bpm
 		data[index].tic_length = uint16_t(float(data[index].tic_length) * tic_ratio);
-		Serial.println(" to "); Serial.println(data[index].tic_length);
 	}
 }
 
@@ -145,15 +144,15 @@ uint16_t SequencerDriver::getDacValue(uint8_t note, uint8_t octave) {
 }
 
 void SequencerDriver::setGateLength(uint8_t index, uint8_t gate_length_fraction) {
-	// Buttons are on 0 - 11 scale, but articulation will be on 1 - 12 scale, with 0 set using other I/O.
-	if (gate_length_fraction > BUTTON_STEP_11 + 1) {
-		gate_length_fraction = BUTTON_STEP_11 + 1;
+	// Buttons are on 0 - 11 scale, but articulation will be on 0 - 11
+	if (gate_length_fraction > BUTTON_STEP_11) {
+		gate_length_fraction = BUTTON_STEP_11;
 	}
 	if (gate_length_fraction == 0) {
 		data[index].tic_length = 0;
 	}
 	else {
-		data[index].tic_length = max_tic_count * gate_length_fraction / (BUTTON_STEP_11 + 1);
+		data[index].tic_length = max_tic_count * gate_length_fraction / (BUTTON_STEP_11);
 	}
 }
 
